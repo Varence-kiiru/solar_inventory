@@ -1,0 +1,56 @@
+{% load i18n %}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{% url 'inventory:dashboard' %}">
+                <i class="fas fa-home"></i> {% trans "Home" %}
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{% url 'inventory:category-list' %}">
+                <i class="fas fa-folder"></i> {% trans "Categories" %}
+            </a>
+        </li>
+        
+        {% if category %}
+            {% for ancestor in category.get_ancestors %}
+                <li class="breadcrumb-item">
+                    <a href="{% url 'inventory:category-detail' ancestor.id %}">
+                        {% if ancestor.icon %}
+                            <i class="fas {{ ancestor.icon }}"></i>
+                        {% endif %}
+                        {{ ancestor.name }}
+                    </a>
+                </li>
+            {% endfor %}
+            
+            <li class="breadcrumb-item active" aria-current="page">
+                {% if category.icon %}
+                    <i class="fas {{ category.icon }}"></i>
+                {% endif %}
+                {{ category.name }}
+            </li>
+        {% elif view_type == 'list' %}
+            <li class="breadcrumb-item active" aria-current="page">
+                {% trans "All Categories" %}
+            </li>
+        {% elif view_type == 'create' %}
+            <li class="breadcrumb-item active" aria-current="page">
+                {% trans "Create Category" %}
+            </li>
+        {% elif view_type == 'update' %}
+            <li class="breadcrumb-item active" aria-current="page">
+                {% trans "Update Category" %}
+            </li>
+        {% elif view_type == 'delete' %}
+            <li class="breadcrumb-item active" aria-current="page">
+                {% trans "Delete Category" %}
+            </li>
+        {% elif view_type == 'tree' %}
+            <li class="breadcrumb-item active" aria-current="page">
+                {% trans "Category Hierarchy" %}
+            </li>
+        {% endif %}
+    </ol>
+</nav>

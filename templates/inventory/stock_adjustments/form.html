@@ -1,0 +1,155 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+    {% if form.instance.id %}
+        {% trans "Edit Stock Adjustment" %}
+    {% else %}
+        {% trans "New Stock Adjustment" %}
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4 mt-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'inventory:dashboard' %}">{% trans "Dashboard" %}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'inventory:stock-adjustment-list' %}">{% trans "Stock Adjustments" %}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">
+                {% if form.instance.id %}
+                    {% trans "Edit Adjustment" %}
+                {% else %}
+                    {% trans "New Adjustment" %}
+                {% endif %}
+            </li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        {% if form.instance.id %}
+                            {% trans "Edit Stock Adjustment" %}
+                        {% else %}
+                            {% trans "New Stock Adjustment" %}
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.product|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.adjustment_type|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.quantity|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.date|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        {{ form.reason|as_crispy_field }}
+                        {{ form.reference_number|as_crispy_field }}
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'inventory:stock-adjustment-list' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i> {% trans "Cancel" %}
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save me-1"></i> {% trans "Save Adjustment" %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">{% trans "Help" %}</h5>
+                </div>
+                <div class="card-body">
+                    <h6>{% trans "About Stock Adjustments" %}</h6>
+                    <p class="text-muted">
+                        {% trans "Stock adjustments are used to correct inventory discrepancies or record stock changes that are not related to sales or purchases." %}
+                    </p>
+                    
+                    <h6>{% trans "Adjustment Types" %}</h6>
+                    <ul class="text-muted">
+                        <li>{% trans "<strong>Increase</strong>: Adds to the current stock quantity" %}</li>
+                        <li>{% trans "<strong>Decrease</strong>: Subtracts from the current stock quantity" %}</li>
+                    </ul>
+                    
+                    <h6>{% trans "Common Reasons" %}</h6>
+                    <ul class="text-muted">
+                        <li>{% trans "Physical count adjustment" %}</li>
+                        <li>{% trans "Damaged or expired goods" %}</li>
+                        <li>{% trans "Theft or loss" %}</li>
+                        <li>{% trans "Returns to supplier" %}</li>
+                        <li>{% trans "Internal use" %}</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Initialize select2 for product dropdown
+        $('#id_product').select2({
+            theme: 'bootstrap-5',
+            placeholder: "{% trans 'Select a product...' %}",
+            allowClear: true,
+            width: '100%'
+        });
+        
+        // Show current stock when product is selected
+        $('#id_product').on('change', function() {
+            var productId = $(this).val();
+            if (productId) {
+                $.ajax({
+                    url: '/api/products/' + productId + '/',
+                    type: 'GET',
+                    success: function(data) {
+                        if (data.quantity_in_stock !== undefined) {
+                            var infoHtml = '<div class="alert alert-info mt-2">' +
+                                           '<i class="bi bi-info-circle me-2"></i>' +
+                                           '{% trans "Current stock" %}: <strong>' + data.quantity_in_stock + '</strong>' +
+                                           '</div>';
+                            $('#id_product').parent().append(infoHtml);
+                        }
+                    }
+                });
+            }
+        });
+        
+        // Auto-generate reference number if empty
+        if (!$('#id_reference_number').val()) {
+            var today = new Date();
+            var dateStr = today.getFullYear() + 
+                          ('0' + (today.getMonth() + 1)).slice(-2) + 
+                          ('0' + today.getDate()).slice(-2);
+            var randomStr = Math.random().toString(36).substring(2, 7).toUpperCase();
+            $('#id_reference_number').val('ADJ-' + dateStr + '-' + randomStr);
+        }
+    });
+</script>
+{% endblock %}

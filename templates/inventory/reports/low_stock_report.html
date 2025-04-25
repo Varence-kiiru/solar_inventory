@@ -1,0 +1,132 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Low Stock Report | Olivian Group Inventory{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media print {
+        .btn, .dropdown, .no-print {
+            display: none !important;
+        }
+        .card {
+            border: none !important;
+        }
+        .card-header {
+            background-color: white !important;
+            border-bottom: 1px solid #ddd !important;
+        }
+        body {
+            padding: 0;
+            margin: 0;
+        }
+        .container {
+            width: 100%;
+            max-width: 100%;
+            padding: 0;
+            margin: 0;
+        }
+    }
+</style>
+{% endblock %}
+    
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3 mb-2 text-gray-800">
+                <i class="bi bi-exclamation-triangle text-warning"></i> Low Stock Report
+            </h1>
+            <p class="mb-4">Products that are below their reorder level and need attention.</p>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'inventory:purchase-order-create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Create Purchase Order
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Low Stock Items</h6>
+            <div class="dropdown no-arrow">
+                <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
+                   data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <i class="bi bi-three-dots-vertical text-gray-400"></i>
+                </a>
+                <div class="dropdown-menu dropdown-menu-end shadow animated--fade-in"
+                aria-labelledby="dropdownMenuLink">
+                <div class="dropdown-header">Export Options:</div>
+                <a class="dropdown-item" href="{% url 'inventory:low-stock-export-excel' %}">
+                <i class="bi bi-file-earmark-excel me-2"></i>Export to Excel
+                </a>
+                <a class="dropdown-item" href="{% url 'inventory:low-stock-export-pdf' %}">
+                <i class="bi bi-file-earmark-pdf me-2"></i>Export to PDF
+                </a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item" href="#" id="print-report">
+                <i class="bi bi-printer me-2"></i>Print Report
+                </a>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered datatable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>SKU</th>
+                            <th>Category</th>
+                            <th>Current Stock</th>
+                            <th>Reorder Level</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in low_stock_products %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'inventory:product-detail' product.id %}">{{ product.name }}</a>
+                            </td>
+                            <td>{{ product.sku|default:"-" }}</td>
+                            <td>{{ product.category.name|default:"-" }}</td>
+                            <td>{{ product.quantity_in_stock }}</td>
+                            <td>{{ product.minimum_stock_level }}</td>
+                            <td>
+                                {% if product.quantity_in_stock == 0 %}
+                                <span class="badge bg-danger">Out of Stock</span>
+                                {% elif product.quantity_in_stock < product.minimum_stock_level %}
+                                <span class="badge bg-warning text-dark">Low Stock</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'inventory:product-restock' product.id %}" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-plus-circle"></i> Restock
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">No low stock items found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('print-report').addEventListener('click', function(e) {
+        e.preventDefault();
+        window.print();
+    });
+</script>
+{% endblock %}
+

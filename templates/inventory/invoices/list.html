@@ -1,0 +1,215 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "Invoices" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
+        <h1>{% trans "Invoices" %}</h1>
+        <div>
+            <a href="{% url 'inventory:pos' %}" class="btn btn-primary">
+                <i class="bi bi-cart-plus me-1"></i> {% trans "New Invoice" %}
+            </a>
+        </div>
+    </div>
+
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="bi bi-file-text me-1"></i>
+                    <span class="fw-bold">{% trans "Invoice Records" %}</span>
+                </div>
+                <div class="d-flex align-items-center">
+                    <form class="d-flex me-2" method="get">
+                        <div class="input-group">
+                            <input type="text" name="search" class="form-control form-control-sm"
+                                   placeholder="{% trans 'Search invoices...' %}" value="{{ search }}">
+                            <button class="btn btn-outline-secondary btn-sm" type="submit">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if object_list %}
+                <div class="table-responsive">
+                    <table id="invoicesTable" class="table table-striped table-hover table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>{% trans "Invoice #" %}</th>
+                                <th>{% trans "Date" %}</th>
+                                <th>{% trans "Customer" %}</th>
+                                <th>{% trans "Total Amount" %}</th>
+                                <th>{% trans "Due Date" %}</th>
+                                <th>{% trans "Payment Status" %}</th>
+                                <th class="text-center">{% trans "Actions" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in object_list %}
+                                <tr>
+                                    <td>{{ sale.invoice_number }}</td>
+                                    <td>{{ sale.sale_date|date:"d/m/Y" }}</td>
+                                    <td>
+                                        {% if sale.customer %}
+                                            <a href="{% url 'inventory:customer-detail' sale.customer.id %}">
+                                                {{ sale.customer.name }}
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">{% trans "Walk-in Customer" %}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>Ksh. {{ sale.total_amount }}</td>
+                                    <td>
+                                        {% if sale.due_date %}
+                                            {{ sale.due_date|date:"d/m/Y" }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if sale.paid %}
+                                            <span class="badge bg-success">{% trans "Paid" %}</span>
+                                        {% elif sale.is_proforma %}
+                                            <span class="badge bg-warning text-dark">{% trans "Proforma" %}</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">{% trans "Unpaid" %}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'inventory:invoice-view' sale.id %}"
+                                            class="btn btn-sm btn-outline-primary"
+                                            data-bs-toggle="tooltip"
+                                            title="{% trans 'View Invoice' %}">
+                                                <i class="bi bi-file-text"></i>
+                                            </a>
+                                            <a href="{% url 'inventory:invoice-pdf-download' sale.id %}"
+                                            class="btn btn-sm btn-outline-secondary"
+                                            data-bs-toggle="tooltip"
+                                            title="{% trans 'Download PDF' %}"
+                                            target="_blank">
+                                                <i class="bi bi-file-pdf"></i>
+                                            </a>
+                                            <form method="post" action="{% url 'inventory:sale-email-invoice' %}" style="display:inline;">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="sale_id" value="{{ sale.id }}">
+                                                <button type="submit"
+                                                        class="btn btn-sm btn-outline-info"
+                                                        data-bs-toggle="tooltip"
+                                                        title="{% trans 'Email Invoice' %}">
+                                                    <i class="bi bi-envelope"></i>
+                                                </button>
+                                            </form>
+                                            {% if not sale.paid %}
+                                            <form method="post" action="{% url 'inventory:mark-sale-paid' sale.id %}" style="display:inline;">
+                                                {% csrf_token %}
+                                                <button type="submit"
+                                                        class="btn btn-sm btn-outline-success"
+                                                        data-bs-toggle="tooltip"
+                                                        title="{% trans 'Mark as Paid' %}"
+                                                        onclick="return confirm('{% trans 'Are you sure you want to mark this invoice as paid?' %}')">
+                                                    <i class="bi bi-check-circle"></i>
+                                                </button>
+                                            </form>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+               
+                {% include 'components/pagination.html' %}
+               
+            {% else %}
+                <div class="alert alert-info d-flex align-items-center" role="alert">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <div>
+                        {% trans "No invoices found." %}
+                        <a href="{% url 'inventory:pos' %}" class="alert-link ms-2">
+                            <i class="bi bi-plus-circle me-1"></i>{% trans "Create your first invoice" %}
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
+        // Initialize DataTable
+        $('#invoicesTable').DataTable({
+            responsive: true,
+            order: [[1, 'desc']],
+            pageLength: 10,
+            lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "All"]],
+            language: {
+                search: "{% trans 'Search:' %}",
+                lengthMenu: "{% trans 'Show _MENU_ entries' %}",
+                info: "{% trans 'Showing _START_ to _END_ of _TOTAL_ entries' %}",
+                infoEmpty: "{% trans 'Showing 0 to 0 of 0 entries' %}",
+                infoFiltered: "{% trans '(filtered from _MAX_ total entries)' %}",
+                emptyTable: "{% trans 'No data available in table' %}",
+                zeroRecords: "{% trans 'No matching records found' %}",
+                paginate: {
+                    first: "{% trans 'First' %}",
+                    last: "{% trans 'Last' %}",
+                    next: "{% trans 'Next' %}",
+                    previous: "{% trans 'Previous' %}"
+                }
+            }
+        });
+
+        // Handle email invoice form submission
+        $('form[action="{% url 'inventory:sale-email-invoice' %}"]').on('submit', function(e) {
+            e.preventDefault(); // Prevent normal form submission
+            
+            if (!confirm('{% trans "Send invoice to customer?" %}')) {
+                return false;
+            }
+
+            var form = $(this);
+            var url = form.attr('action');
+            var saleId = form.find('input[name="sale_id"]').val();
+            
+            $.ajax({
+                type: "POST",
+                url: url,
+                data: {
+                    'sale_id': saleId,
+                    'csrfmiddlewaretoken': $('input[name="csrfmiddlewaretoken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        // Show success message
+                        alert('{% trans "Invoice sent successfully!" %}');
+                    } else {
+                        // Show error message
+                        alert(response.error || '{% trans "Failed to send invoice." %}');
+                    }
+                },
+                error: function() {
+                    alert('{% trans "An error occurred while sending the invoice." %}');
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}
+

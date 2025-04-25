@@ -1,0 +1,250 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice #{{ sale.invoice_number }}</title>
+    <style>
+        @page {
+            size: a4 landscape;
+            margin: 1cm;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        /* Logo styling */
+        .logo-container {
+            width: 100px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            margin-right: 20px;
+        }
+
+        .logo {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        .logo-placeholder {
+            width: 100%;
+            height: 100%;
+            border: 1px dashed #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #555;
+            font-size: 18px;
+            font-weight: bold;
+            background-color: #f9f9f9;
+        }
+
+        /* Improve invoice header layout */
+        .invoice-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .invoice-title {
+            text-align: right;
+            min-width: 200px;
+        }
+
+        .invoice-title h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .invoice-title p {
+            margin: 0;
+            color: #666;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .invoice-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        .invoice-info-block {
+            width: 45%;
+        }
+        .invoice-info-block h3 {
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f5f5f5;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .totals {
+            width: 40%;
+            margin-left: auto;
+        }
+        .totals table {
+            margin-bottom: 0;
+        }
+        .totals th {
+            text-align: right;
+        }
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #666;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-header">
+        <div class="logo-container">
+            {% if logo_url %}
+                <img src="{{ logo_url }}" alt="Company Logo" class="logo">
+            {% else %}
+                <div class="logo-placeholder">
+                    <span>Your Company</span>
+                </div>
+            {% endif %}
+        </div>
+        <div class="invoice-title">
+            <h1>INVOICE</h1>
+            <p>Invoice #{{ sale.invoice_number }}</p>
+            <p>Date: {{ sale.sale_date|date:"d/m/Y" }}</p>
+        </div>
+    </div>
+
+    <div class="invoice-info">
+        <div class="invoice-info-block">
+            <h3>From:</h3>
+            <p>Your Company Name</p>
+            <p>123 Business Street</p>
+            <p>City, State, ZIP</p>
+            <p>Phone: (123) 456-7890</p>
+            <p>Email: info@yourcompany.com</p>
+        </div>
+        <div class="invoice-info-block">
+            <h3>To:</h3>
+            {% if sale.customer %}
+                <p>{{ sale.customer.name }}</p>
+                {% if sale.customer.address %}
+                    <p>{{ sale.customer.address }}</p>
+                {% endif %}
+                {% if sale.customer.phone %}
+                    <p>Phone: {{ sale.customer.phone }}</p>
+                {% endif %}
+                {% if sale.customer.email %}
+                    <p>Email: {{ sale.customer.email }}</p>
+                {% endif %}
+            {% else %}
+                <p>Walk-in Customer</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Product</th>
+                <th>Quantity</th>
+                <th>Unit Price</th>
+                <th>Discount</th>
+                <th class="text-right">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in sale.items.all %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ item.product.name }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>Ksh. {{ item.unit_price }}</td>
+                <td>Ksh. {{ item.discount }}</td>
+                <td class="text-right">Ksh. {{ item.total_price }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="totals">
+        <table>
+            <tr>
+                <th>Subtotal:</th>
+                <td class="text-right">Ksh. {{ sale.subtotal }}</td>
+            </tr>
+            {% if sale.discount_percentage > 0 %}
+            <tr>
+                <th>Discount ({{ sale.discount_percentage }}%):</th>
+                <td class="text-right">Ksh. {{ sale.discount_amount }}</td>
+            </tr>
+            {% endif %}
+            {% if sale.tax_percentage > 0 %}
+            <tr>
+                <th>Tax ({{ sale.tax_percentage }}%):</th>
+                <td class="text-right">Ksh. {{ sale.tax_amount }}</td>
+            </tr>
+            {% endif %}
+            {% if sale.shipping_cost %}
+            <tr>
+                <th>Shipping:</th>
+                <td class="text-right">Ksh. {{ sale.shipping_cost }}</td>
+            </tr>
+            {% endif %}
+            <tr>
+                <th>Total:</th>
+                <td class="text-right"><strong>Ksh. {{ sale.total_amount }}</strong></td>
+            </tr>
+        </table>
+    </div>
+
+    <div>
+        <h3>Payment Information</h3>
+        <p><strong>Payment Method:</strong> {{ sale.get_payment_method_display }}</p>
+        <p><strong>Payment Status:</strong> {% if sale.paid %}Paid{% else %}Pending{% endif %}</p>
+        {% if sale.payment_method == 'credit' and sale.due_date %}
+        <p><strong>Due Date:</strong> {{ sale.due_date|date:"d/m/Y" }}</p>
+        {% endif %}
+    </div>
+
+    {% if sale.notes %}
+    <div>
+        <h3>Notes</h3>
+        <p>{{ sale.notes }}</p>
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        <p>Thank you for your business!</p>
+        <p>This invoice was generated on {{ sale.sale_date|date:"d/m/Y H:i" }}</p>
+    </div>
+</body>
+</html>
+

@@ -1,0 +1,251 @@
+{% extends 'base/base.html' %}
+
+{% block title %}{{ customer.name }} Details{% endblock %}
+
+{% block extra_css %}
+<style>
+    .customer-info-list li {
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: flex-start;
+    }
+    .customer-info-list i {
+        width: 24px;
+        margin-right: 0.5rem;
+        color: #6c757d;
+    }
+    .purchase-history-table {
+        font-size: 0.9rem;
+    }
+    .customer-stats {
+        background-color: #f8f9fa;
+        border-radius: 0.25rem;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .stat-item {
+        text-align: center;
+        padding: 0.5rem;
+    }
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #0d6efd;
+    }
+    .stat-label {
+        font-size: 0.8rem;
+        color: #6c757d;
+        text-transform: uppercase;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2">
+        <i class="bi bi-person"></i> Customer Details
+    </h1>
+    <div>
+        <a href="{% url 'inventory:customer-list' %}" class="btn btn-outline-secondary me-2">
+            <i class="bi bi-arrow-left"></i> Back to List
+        </a>
+        <a href="{% url 'inventory:customer-update' customer.id %}" class="btn btn-primary">
+            <i class="bi bi-pencil"></i> Edit
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    {{ customer.name }}
+                    {% if not customer.is_active %}
+                    <span class="badge bg-secondary ms-2">Inactive</span>
+                    {% endif %}
+                </h5>
+                <span class="badge bg-primary">Customer #{{ customer.id }}</span>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled customer-info-list">
+                    {% if customer.email %}
+                    <li>
+                        <i class="bi bi-envelope-fill"></i>
+                        <a href="mailto:{{ customer.email }}">{{ customer.email }}</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% if customer.phone %}
+                    <li>
+                        <i class="bi bi-telephone-fill"></i>
+                        <a href="tel:{{ customer.phone }}">{{ customer.phone }}</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% if customer.tax_id %}
+                    <li>
+                        <i class="bi bi-file-text-fill"></i>
+                        <span>Tax ID: {{ customer.tax_id }}</span>
+                    </li>
+                    {% endif %}
+                    
+                    {% if customer.credit_limit %}
+                    <li>
+                        <i class="bi bi-credit-card-fill"></i>
+                        <span>Credit Limit: Ksh. {{ customer.credit_limit }}</span>
+                    </li>
+                    {% endif %}
+                    
+                    {% if customer.address %}
+                    <li>
+                        <i class="bi bi-geo-alt-fill"></i>
+                        <span>{{ customer.address|linebreaks }}</span>
+                    </li>
+                    {% endif %}
+                    
+                    <li>
+                        <i class="bi bi-calendar-fill"></i>
+                        <span>Customer since: {{ customer.created_at|date:"F j, Y" }}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Purchase History</h5>
+            </div>
+            <div class="card-body">
+                {% with sales=customer.sales.all %}
+                {% if sales %}
+                <div class="row customer-stats">
+                    <div class="col-4 stat-item">
+                        <div class="stat-value">{{ sales.count }}</div>
+                        <div class="stat-label">Total Orders</div>
+                    </div>
+                    <div class="col-4 stat-item">
+                        <div class="stat-value">Ksh. {{ total_spent|default:"0.00" }}</div>
+                        <div class="stat-label">Total Spent</div>
+                    </div>
+                    <div class="col-4 stat-item">
+                        <div class="stat-value">Ksh. {{ average_order|default:"0.00" }}</div>
+                        <div class="stat-label">Avg. Order</div>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover purchase-history-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Invoice</th>
+                                <th>Items</th>
+                                <th>Amount</th>
+                                <th>Payment</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in sales %}
+                            <tr>
+                                <td>{{ sale.sale_date|date:"M d, Y" }}</td>
+                                <td>INV-{{ sale.id|stringformat:"05d" }}</td>
+                                <td>{{ sale.items.count }}</td>
+                                <td>Ksh. {{ sale.total_amount|floatformat:2 }}</td>
+                                <td>{{ sale.get_payment_method_display }}</td>
+                                <td>
+                                    {% if sale.paid %}
+                                    <span class="badge bg-success">Paid</span>
+                                    {% else %}
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="{% url 'inventory:sale-detail' sale.id %}" class="btn btn-sm btn-outline-info">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="{% url 'inventory:invoice-pdf' sale.id %}" class="btn btn-sm btn-outline-secondary" target="_blank">
+                                            <i class="bi bi-file-pdf"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-cart text-muted" style="font-size: 3rem;"></i>
+                    <h5 class="mt-3">No purchase history</h5>
+                    <p class="text-muted">This customer hasn't made any purchases yet.</p>
+                    <a href="{% url 'inventory:pos' %}?customer={{ customer.id }}" class="btn btn-primary mt-2">
+                        <i class="bi bi-cart-plus"></i> Create New Sale
+                    </a>
+                </div>
+                {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Recent Activity</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="bi bi-person-plus text-success me-2"></i>
+                            Customer created
+                        </div>
+                        <span class="text-muted">{{ customer.created_at|date:"M d, Y" }}</span>
+                    </li>
+                    {% if customer.created_at != customer.updated_at %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="bi bi-pencil text-primary me-2"></i>
+                            Customer information updated
+                        </div>
+                        <span class="text-muted">{{ customer.updated_at|date:"M d, Y" }}</span>
+                    </li>
+                    {% endif %}
+                    
+                    {% with last_sale=customer.sales.last %}
+                    {% if last_sale %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="bi bi-bag-check text-info me-2"></i>
+                            Last purchase
+                        </div>
+                        <span class="text-muted">{{ last_sale.sale_date|date:"M d, Y" }}</span>
+                    </li>
+                    {% endif %}
+                    {% endwith %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add any customer-specific JavaScript functionality here
+        
+        // Example: Highlight the most recent purchase
+        const purchaseRows = document.querySelectorAll('.purchase-history-table tbody tr');
+        if (purchaseRows.length > 0) {
+            purchaseRows[0].classList.add('table-info');
+        }
+    });
+</script>
+{% endblock %}
+
+

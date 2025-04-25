@@ -1,0 +1,192 @@
+{% extends "base/base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "Brand" %}: {{ brand.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <div class="row mt-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'inventory:dashboard' %}">{% trans "Dashboard" %}</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'inventory:brand-list' %}">{% trans "Brands" %}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ brand.name }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-tag me-2"></i>{% trans "Brand Details" %}
+                    </h5>
+                    <div>
+                        <a href="{% url 'inventory:brand-update' brand.id %}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-edit me-1"></i> {% trans "Edit" %}
+                        </a>
+                        <a href="{% url 'inventory:brand-delete' brand.id %}" class="btn btn-sm btn-danger">
+                            <i class="fas fa-trash me-1"></i> {% trans "Delete" %}
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 text-center mb-3">
+                            {% if brand.logo %}
+                                <img src="{{ brand.logo.url }}" alt="{{ brand.name }}" class="img-fluid mb-2" style="max-height: 120px;">
+                            {% else %}
+                                <div class="bg-light rounded d-flex align-items-center justify-content-center mx-auto" style="width: 120px; height: 120px;">
+                                    <i class="fas fa-industry fa-3x text-secondary"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-9">
+                            <h3 class="mb-3">{{ brand.name }}</h3>
+                            
+                            <div class="mb-3">
+                                <h6 class="text-muted mb-2">{% trans "Description" %}</h6>
+                                <p>{{ brand.description|default:_("No description provided.") }}</p>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="text-muted mb-2">{% trans "Contact Information" %}</h6>
+                                    <ul class="list-unstyled">
+                                        {% if brand.contact_email %}
+                                            <li class="mb-1">
+                                                <i class="fas fa-envelope me-2 text-primary"></i>
+                                                <a href="mailto:{{ brand.contact_email }}">{{ brand.contact_email }}</a>
+                                            </li>
+                                        {% endif %}
+                                        {% if brand.contact_phone %}
+                                            <li class="mb-1">
+                                                <i class="fas fa-phone me-2 text-primary"></i>
+                                                <a href="tel:{{ brand.contact_phone }}">{{ brand.contact_phone }}</a>
+                                            </li>
+                                        {% endif %}
+                                        {% if brand.website %}
+                                            <li class="mb-1">
+                                                <i class="fas fa-globe me-2 text-primary"></i>
+                                                <a href="{{ brand.website }}" target="_blank">{{ brand.website }}</a>
+                                            </li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="text-muted mb-2">{% trans "Status" %}</h6>
+                                    {% if brand.is_active %}
+                                        <span class="badge bg-success">{% trans "Active" %}</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">{% trans "Inactive" %}</span>
+                                    {% endif %}
+                                    
+                                    <h6 class="text-muted mb-2 mt-3">{% trans "Created" %}</h6>
+                                    <p>{{ brand.created_at|date:"F j, Y" }}</p>
+                                    
+                                    <h6 class="text-muted mb-2">{% trans "Last Updated" %}</h6>
+                                    <p>{{ brand.updated_at|date:"F j, Y" }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>{% trans "Statistics" %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-center mb-3">
+                        <div class="text-center">
+                            <div class="display-4 fw-bold text-primary">{{ brand.product_count }}</div>
+                            <div class="text-muted">{% trans "Products" %}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Products Section -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-boxes me-2"></i>{% trans "Products by this Brand" %}
+            </h5>
+            <a href="{% url 'inventory:product-create' %}?brand={{ brand.id }}" class="btn btn-sm btn-primary">
+                <i class="fas fa-plus me-1"></i> {% trans "Add Product" %}
+            </a>
+        </div>
+        <div class="card-body">
+            {% if products %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>{% trans "Product" %}</th>
+                                <th>{% trans "SKU" %}</th>
+                                <th>{% trans "Category" %}</th>
+                                <th>{% trans "Price" %}</th>
+                                <th>{% trans "Stock" %}</th>
+                                <th>{% trans "Status" %}</th>
+                                <th>{% trans "Actions" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in products %}
+                                <tr>
+                                    <td>
+                                        {% if product.image %}
+                                            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                                        {% endif %}
+                                        {{ product.name }}
+                                    </td>
+                                    <td>{{ product.sku }}</td>
+                                    <td>{{ product.category.name }}</td>
+                                    <td>{{ product.price }}</td>
+                                    <td>{{ product.stock_quantity }}</td>
+                                    <td>
+                                        {% if product.is_active %}
+                                            <span class="badge bg-success">{% trans "Active" %}</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">{% trans "Inactive" %}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'inventory:product-detail' product.id %}" class="btn btn-sm btn-outline-info">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{% url 'inventory:product-update' product.id %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    {% trans "No products found for this brand." %}
+                    <a href="{% url 'inventory:product-create' %}?brand={{ brand.id }}" class="alert-link ms-2">
+                        {% trans "Add a product" %}
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

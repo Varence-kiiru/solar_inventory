@@ -1,0 +1,156 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "Stock Adjustments" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
+        <h1>{% trans "Stock Adjustments" %}</h1>
+        <div class="btn-group">
+            <a href="{% url 'inventory:stock-adjustment-create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i> {% trans "New Adjustment" %}
+            </a>
+            <a href="{% url 'inventory:stock-count' %}" class="btn btn-outline-primary">
+                <i class="bi bi-clipboard-check me-1"></i> {% trans "Stock Count" %}
+            </a>
+        </div>
+    </div>
+
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="bi bi-arrow-down-up me-1"></i>
+                    <span class="fw-bold">{% trans "Adjustment History" %}</span>
+                </div>
+                <div class="d-flex align-items-center">
+                    <form class="d-flex me-2" method="get">
+                        <div class="input-group">
+                            <input type="text" name="search" class="form-control form-control-sm"
+                                   placeholder="{% trans 'Search adjustments...' %}" value="{{ search }}">
+                            <button class="btn btn-outline-secondary btn-sm" type="submit">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if adjustments %}
+                <div class="table-responsive">
+                    <table id="adjustmentsTable" class="table table-striped table-hover table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>{% trans "Reference" %}</th>
+                                <th>{% trans "Date" %}</th>
+                                <th>{% trans "Product" %}</th>
+                                <th>{% trans "Type" %}</th>
+                                <th class="text-center">{% trans "Quantity" %}</th>
+                                <th>{% trans "Reason" %}</th>
+                                <th>{% trans "Adjusted By" %}</th>
+                                <th class="text-center">{% trans "Actions" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for adjustment in adjustments %}
+                                <tr>
+                                    <td>{{ adjustment.reference_number }}</td>
+                                    <td>{{ adjustment.date|date:"d/m/Y" }}</td>
+                                    <td>
+                                        <a href="{% url 'inventory:product-detail' adjustment.product.id %}">
+                                            {{ adjustment.product.name }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if adjustment.adjustment_type == 'increase' %}
+                                            <span class="badge bg-success">{% trans "Increase" %}</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">{% trans "Decrease" %}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">{{ adjustment.quantity }}</td>
+                                    <td>{{ adjustment.reason }}</td>
+                                    <td>{{ adjustment.adjusted_by.get_full_name|default:adjustment.adjusted_by.username }}</td>
+                                    <td class="text-center">
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'inventory:stock-adjustment-detail' adjustment.id %}"
+                                               class="btn btn-sm btn-outline-info"
+                                               data-bs-toggle="tooltip"
+                                               title="{% trans 'View Details' %}">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a href="{% url 'inventory:stock-adjustment-update' adjustment.id %}"
+                                               class="btn btn-sm btn-outline-primary"
+                                               data-bs-toggle="tooltip"
+                                               title="{% trans 'Edit' %}">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a href="{% url 'inventory:stock-adjustment-delete' adjustment.id %}"
+                                               class="btn btn-sm btn-outline-danger"
+                                               data-bs-toggle="tooltip"
+                                               title="{% trans 'Delete' %}">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                {% include 'components/pagination.html' %}
+                
+            {% else %}
+                <div class="alert alert-info d-flex align-items-center" role="alert">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <div>
+                        {% trans "No stock adjustments found." %}
+                        <a href="{% url 'inventory:stock-adjustment-create' %}" class="alert-link ms-2">
+                            <i class="bi bi-plus-circle me-1"></i>{% trans "Create your first adjustment" %}
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+        
+        // Initialize DataTable
+        $('#adjustmentsTable').DataTable({
+            responsive: true,
+            order: [[1, 'desc']],
+            pageLength: 10,
+            lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "All"]],
+            language: {
+                search: "{% trans 'Search:' %}",
+                lengthMenu: "{% trans 'Show _MENU_ entries' %}",
+                info: "{% trans 'Showing _START_ to _END_ of _TOTAL_ entries' %}",
+                infoEmpty: "{% trans 'Showing 0 to 0 of 0 entries' %}",
+                infoFiltered: "{% trans '(filtered from _MAX_ total entries)' %}",
+                emptyTable: "{% trans 'No data available in table' %}",
+                zeroRecords: "{% trans 'No matching records found' %}",
+                paginate: {
+                    first: "{% trans 'First' %}",
+                    last: "{% trans 'Last' %}",
+                    next: "{% trans 'Next' %}",
+                    previous: "{% trans 'Previous' %}"
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

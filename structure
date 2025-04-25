@@ -1,0 +1,133 @@
+solar_inventory/                  # Project root
+│
+├── config/                      # Main project configuration (renamed from solar_inventory)
+│   ├── __init__.py
+│   ├── settings/                # Split settings for different environments
+│   │   ├── base.py              # Common settings
+│   │   ├── development.py       # Dev-specific settings
+│   │   ├── production.py        # Production settings
+│   │   └── testing.py           # Test settings
+│   ├── urls.py                  # Main URLs
+│   └── wsgi.py
+│
+├── inventory/                   # Main app
+│   ├── migrations/              # Database migrations
+│   ├── templatetags/            # Custom template tags
+│   │   └── inventory_tags.py
+│   ├── tests/                   # Tests
+│   │   ├── __init__.py
+│   │   ├── test_models.py
+│   │   ├── test_views.py
+│   │   └── ...
+│   ├── utils/                   # Utility classes
+│   │   ├── exporters.py         # Data export utilities
+│   │   ├── inventory.py         # Inventory calculations
+│   │   └── pdf.py               # PDF generation
+│   ├── __init__.py
+│   ├── admin.py                 # Admin config
+│   ├── apps.py
+│   ├── forms.py                 # All forms
+│   ├── models.py                # Data models
+│   ├── urls.py                  # App URLs
+│   ├── views/                   # Split views into modules
+│   │   ├── __init__.py
+│   │   ├── customers.py
+│   │   ├── products.py
+│   │   ├── sales.py
+│   │   └── suppliers.py
+│   └── signals.py               # Signal handlers
+│
+├── static/                      # Static files
+│   ├── css/
+│   │   ├── app.css              # Main styles
+│   │   └── pos.css              # POS-specific styles
+│   ├── js/
+│   │   ├── app.js               # Main JavaScript
+│   │   └── pos.js               # POS-specific JavaScript
+│   └── images/                  # Images and icons
+│
+├── templates/                   # As previously structured
+│   ├── base/                   # Base templates
+│   │   ├── base.html           # Main base template
+│   │   ├── auth_base.html      # Base for authentication pages
+│   │   └── email_base.html     # Base for email templates
+│   │
+│   ├── includes/               # Reusable template fragments
+│   │   ├── pagination.html     # Pagination controls
+│   │   ├── navbar.html         # Navigation bar
+│   │   ├── footer.html         # Footer section
+│   │   ├── messages.html       # Django messages display
+│   │   └── search_form.html    # Search form component
+│   │
+│   ├── inventory/              # App-specific templates
+│   │   │
+│   │   ├── products/           # Product-related templates
+│   │   │   ├── list.html       # Product list view
+│   │   │   ├── detail.html     # Product detail view
+│   │   │   ├── create.html     # Product creation form
+│   │   │   ├── update.html     # Product update form
+│   │   │   └── partials/       # Product partial templates
+│   │   │       ├── _card.html  # Product card component
+│   │   │       └── _form.html  # Product form fields
+│   │   │
+│   │   ├── sales/              # Sales-related templates
+│   │   │   ├── pos.html        # Point of Sale interface
+│   │   │   ├── list.html       # Sales list view
+│   │   │   ├── detail.html     # Sale detail view
+│   │   │   └── partials/
+│   │   │       ├── _cart.html  # Shopping cart component
+│   │   │       └── _items.html # Sale items table
+│   │   │
+│   │   ├── customers/          # Customer templates
+│   │   │   ├── list.html       # Customer list
+│   │   │   ├── detail.html     # Customer detail
+│   │   │   ├── create.html     # Customer creation
+│   │   │   └── update.html     # Customer update
+│   │   │
+│   │   ├── suppliers/          # Supplier templates
+│   │   │   ├── list.html
+│   │   │   ├── detail.html
+│   │   │   ├── create.html
+│   │   │   └── update.html
+│   │   │
+│   │   ├── purchase_orders/    # Purchase order templates
+│   │   │   ├── list.html
+│   │   │   ├── detail.html
+│   │   │   ├── create.html
+│   │   │   └── update.html
+│   │   │
+│   │   ├── reports/            # Reporting templates
+│   │   │   ├── inventory.html
+│   │   │   ├── sales.html
+│   │   │   └── stock.html
+│   │   │
+│   │   └── documents/          # Document generation templates
+│   │       ├── invoice.html    # HTML invoice template
+│   │       ├── invoice_pdf.html # PDF invoice template
+│   │       ├── po.html         # Purchase order template
+│   │       └── receipt.html    # Receipt template
+│   │
+│   ├── registration/           # Authentication templates
+│   │   ├── login.html
+│   │   ├── logout.html
+│   │   ├── password_change.html
+│   │   └── password_reset.html
+│   │
+│   └── errors/                 # Error pages
+│       ├── 404.html
+│       ├── 403.html
+│       ├── 500.html
+│       └── 400.html
+│
+├── locale/                      # Translation files
+│
+├── requirements/                # Dependency management
+│   ├── base.txt                # Core requirements
+│   ├── development.txt         # Dev-only requirements
+│   └── production.txt          # Production requirements
+│
+├── manage.py
+├── .env                         # Environment variables
+├── .gitignore
+├── README.md
+└── pyproject.toml              # Modern Python project config

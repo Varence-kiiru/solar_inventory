@@ -1,0 +1,103 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block title %}{% trans "Restock" %} - {{ product.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">{% trans "Restock Product" %}</h1>
+        <a href="{% url 'inventory:product-detail' product.id %}" class="d-none d-sm-inline-block btn btn-sm btn-secondary shadow-sm">
+            <i class="bi bi-arrow-left"></i> {% trans "Back to Product" %}
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">{% trans "Restock" %} - {{ product.name }}</h6>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'inventory:product-restock' product.id %}">
+                        {% csrf_token %}
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="quantity" class="form-label">{% trans "Quantity to Add" %}*</label>
+                                <input type="number" class="form-control" id="quantity" name="quantity" min="1" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="cost_price" class="form-label">{% trans "Cost Price" %}</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">Ksh.</span>
+                                    <input type="number" class="form-control" id="cost_price" name="cost_price" 
+                                           step="0.01" min="0" value="{{ product.cost_price|default:'0.00' }}">
+                                </div>
+                                <small class="form-text text-muted">{% trans "Leave as is if cost price hasn't changed" %}</small>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="supplier" class="form-label">{% trans "Supplier" %}</label>
+                            <select class="form-select" id="supplier" name="supplier">
+                                <option value="">{% trans "-- Select Supplier (Optional) --" %}</option>
+                                {% for supplier in suppliers %}
+                                <option value="{{ supplier.id }}">{{ supplier.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">{% trans "Notes" %}</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'inventory:product-detail' product.id %}" class="btn btn-secondary me-md-2">
+                                {% trans "Cancel" %}
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> {% trans "Add Stock" %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">{% trans "Product Information" %}</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>{% trans "Product:" %}</strong> {{ product.name }}
+                    </div>
+                    {% if product.sku %}
+                    <div class="mb-3">
+                        <strong>{% trans "SKU:" %}</strong> {{ product.sku }}
+                    </div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <strong>{% trans "Current Stock:" %}</strong> {{ product.quantity_in_stock }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>{% trans "Current Cost Price:" %}</strong> Ksh. {{ product.cost_price|default:"Not set" }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>{% trans "Selling Price:" %}</strong> Ksh. {{ product.selling_price }}
+                    </div>
+                    {% if product.last_restocked %}
+                    <div class="mb-3">
+                        <strong>{% trans "Last Restocked:" %}</strong> {{ product.last_restocked|date:"d/m/Y" }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

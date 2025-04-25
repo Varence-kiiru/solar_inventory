@@ -1,0 +1,158 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load i18n %}
+{% load humanize %}
+
+{% block title %}{% trans "Customer Report" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="h3 mb-4 text-gray-800">{% trans "Customer Report" %}</h1>
+    
+    <!-- Export Button -->
+    <div class="mb-4">
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-primary">
+                <i class="bi bi-download"></i> {% trans "Export CSV" %}
+            </button>
+        </form>
+    </div>
+    
+    <!-- Top Customers -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">{% trans "Top Customers by Sales" %}</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="topCustomersTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>{% trans "Customer" %}</th>
+                            <th>{% trans "Email" %}</th>
+                            <th>{% trans "Phone" %}</th>
+                            <th>{% trans "Total Orders" %}</th>
+                            <th>{% trans "Total Spent" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for customer in top_customers %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'inventory:customer-detail' customer.id %}">
+                                    {{ customer.name }}
+                                </a>
+                            </td>
+                            <td>{{ customer.email|default:"-" }}</td>
+                            <td>{{ customer.phone|default:"-" }}</td>
+                            <td>{{ customer.total_sales }}</td>
+                            <td>Ksh. {{ customer.total_spent|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">{% trans "No customer data available" %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- New Customers -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">{% trans "New Customers (Last 30 Days)" %}</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="newCustomersTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>{% trans "Customer" %}</th>
+                            <th>{% trans "Email" %}</th>
+                            <th>{% trans "Phone" %}</th>
+                            <th>{% trans "Date Created" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for customer in new_customers %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'inventory:customer-detail' customer.id %}">
+                                    {{ customer.name }}
+                                </a>
+                            </td>
+                            <td>{{ customer.email|default:"-" }}</td>
+                            <td>{{ customer.phone|default:"-" }}</td>
+                            <td>{{ customer.created_at|date:"d/m/Y" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center">{% trans "No new customers in the last 30 days" %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Inactive Customers -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">{% trans "Inactive Customers (No Purchases in 90+ Days)" %}</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="inactiveCustomersTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>{% trans "Customer" %}</th>
+                            <th>{% trans "Email" %}</th>
+                            <th>{% trans "Phone" %}</th>
+                            <th>{% trans "Last Purchase" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for customer in inactive_customers %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'inventory:customer-detail' customer.id %}">
+                                    {{ customer.name }}
+                                </a>
+                            </td>
+                            <td>{{ customer.email|default:"-" }}</td>
+                            <td>{{ customer.phone|default:"-" }}</td>
+                            <td>
+                                {% if customer.last_purchase %}
+                                    {{ customer.last_purchase|date:"d/m/Y" }}
+                                {% else %}
+                                    {% trans "Never" %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center">{% trans "No inactive customers found" %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize DataTables
+        $('#topCustomersTable').DataTable();
+        $('#newCustomersTable').DataTable();
+        $('#inactiveCustomersTable').DataTable();
+    });
+</script>
+{% endblock %}

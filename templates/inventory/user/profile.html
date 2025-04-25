@@ -1,0 +1,174 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}User Profile{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="h3 mb-4 text-gray-800">User Profile</h1>
+
+    <div class="row">
+        <!-- Profile Image Column -->
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Profile Photo</h6>
+                </div>
+                <div class="card-body text-center">
+                    {% if user.profile_image %}
+                        <img src="{{ user.profile_image.url }}" alt="Profile Image" class="img-profile rounded-circle mb-3" style="width: 180px; height: 180px; object-fit: cover;">
+                    {% else %}
+                        <img src="{% static 'img/undraw_profile.svg' %}" alt="Default Profile" class="img-profile rounded-circle mb-3" style="width: 180px; height: 180px; object-fit: cover;">
+                    {% endif %}
+                    <h5 class="mb-1">{{ user.get_full_name }}</h5>
+                    <p class="text-muted">{{ user.get_role_display }}</p>
+                    <p class="text-muted">
+                        <i class="fas fa-envelope fa-fw mr-2"></i>{{ user.email }}
+                    </p>
+                    {% if user.phone %}
+                    <p class="text-muted">
+                        <i class="fas fa-phone fa-fw mr-2"></i>{{ user.phone }}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Information Column -->
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Profile Information</h6>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                   
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                       
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label">Username</label>
+                            <div class="col-sm-9">
+                                <input type="text" class="form-control" value="{{ user.username }}" readonly>
+                            </div>
+                        </div>
+                       
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label">First Name</label>
+                            <div class="col-sm-9">
+                                {{ form.first_name }}
+                                {% if form.first_name.errors %}
+                                    <div class="text-danger">{{ form.first_name.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                       
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label">Last Name</label>
+                            <div class="col-sm-9">
+                                {{ form.last_name }}
+                                {% if form.last_name.errors %}
+                                    <div class="text-danger">{{ form.last_name.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                       
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label">Email</label>
+                            <div class="col-sm-9">
+                                {{ form.email }}
+                                {% if form.email.errors %}
+                                    <div class="text-danger">{{ form.email.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label">Phone</label>
+                            <div class="col-sm-9">
+                                {{ form.phone }}
+                                {% if form.phone.errors %}
+                                    <div class="text-danger">{{ form.phone.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label">Profile Image</label>
+                            <div class="col-sm-9">
+                                <div class="custom-file">
+                                    {{ form.profile_image }}
+                                    <label class="custom-file-label" for="{{ form.profile_image.id_for_label }}">
+                                        {% if user.profile_image %}Change profile image{% else %}Choose file{% endif %}
+                                    </label>
+                                </div>
+                                {% if form.profile_image.errors %}
+                                    <div class="text-danger">{{ form.profile_image.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Recommended size: 300x300 pixels. Maximum file size: 2MB.
+                                </small>
+                            </div>
+                        </div>
+                       
+                        <div class="form-group row">
+                            <div class="col-sm-9 offset-sm-3">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save mr-1"></i> Save Changes
+                                </button>
+                                <a href="{% url 'inventory:dashboard' %}" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left mr-1"></i> Back
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Additional Information Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Account Information</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Account Created:</strong> {{ user.date_joined|date:"F j, Y" }}</p>
+                            <p><strong>Last Login:</strong> {{ user.last_login|date:"F j, Y H:i" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>User Role:</strong> {{ user.get_role_display }}</p>
+                            <p><strong>Status:</strong> 
+                                {% if user.is_active %}
+                                    <span class="badge badge-success">Active</span>
+                                {% else %}
+                                    <span class="badge badge-danger">Inactive</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Update file input label with selected filename
+    $('.custom-file-input').on('change', function() {
+        var fileName = $(this).val().split('\\').pop();
+        $(this).next('.custom-file-label').html(fileName || 'Choose file');
+    });
+</script>
+{% endblock %}
+{% endblock %}

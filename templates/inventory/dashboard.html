@@ -1,0 +1,649 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load i18n %}
+{% load humanize %}
+
+{% block title %}{% trans "Dashboard" %} | Solar Inventory System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">{% trans "Dashboard" %}</h1>
+        <div>
+            <a href="{% url 'inventory:product-export' %}" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+                <i class="bi bi-download"></i> {% trans "Generate Report" %}
+            </a>
+            <a href="{% url 'inventory:pos' %}" class="d-none d-sm-inline-block btn btn-sm btn-success shadow-sm ml-2">
+                <i class="bi bi-cart-plus"></i> {% trans "New Sale" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Content Row - Key Metrics -->
+    <div class="row">
+        <!-- Total Products Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                {% trans "Total Products" %}
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_products }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-box fs-2 text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <a href="{% url 'inventory:product-list' %}" class="small text-primary">{% trans "View Details" %} <i class="bi bi-arrow-right"></i></a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Low Stock Products Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                {% trans "Low Stock Items" %}
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ low_stock_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-exclamation-triangle fs-2 text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <a href="{% url 'inventory:inventory-report' %}" class="small text-warning">{% trans "View Details" %} <i class="bi bi-arrow-right"></i></a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Sales Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                {% trans "Monthly Sales" %}
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">Ksh. {{ monthly_sales|floatformat:2|intcomma }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-currency-dollar fs-2 text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <a href="{% url 'inventory:sales-report' %}" class="small text-success">{% trans "View Details" %} <i class="bi bi-arrow-right"></i></a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Orders Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                {% trans "Pending Orders" %}
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ pending_orders }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-truck fs-2 text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <a href="{% url 'inventory:purchase-order-list' %}" class="small text-info">{% trans "View Details" %} <i class="bi bi-arrow-right"></i></a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Row - Charts and Tables -->
+    <div class="row">
+        <!-- Sales Chart -->
+        <div class="col-xl-8 col-lg-7">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">{% trans "Sales Overview" %}</h6>
+                    <div class="dropdown no-arrow">
+                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
+                            data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="bi bi-three-dots-vertical text-gray-400"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
+                            aria-labelledby="dropdownMenuLink">
+                            <div class="dropdown-header">{% trans "Time Range:" %}</div>
+                            <a class="dropdown-item" href="#">{% trans "Last 7 Days" %}</a>
+                            <a class="dropdown-item" href="#">{% trans "Last 30 Days" %}</a>
+                            <a class="dropdown-item" href="#">{% trans "This Month" %}</a>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="{% url 'inventory:sales-report' %}">{% trans "View Detailed Report" %}</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-area">
+                        <canvas id="salesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory Status Pie Chart -->
+        <div class="col-xl-4 col-lg-5">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">{% trans "Inventory Status" %}</h6>
+                    <div class="dropdown no-arrow">
+                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
+                            data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="bi bi-three-dots-vertical text-gray-400"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
+                            aria-labelledby="dropdownMenuLink">
+                            <div class="dropdown-header">{% trans "View Options:" %}</div>
+                            <a class="dropdown-item" href="#">{% trans "By Category" %}</a>
+                            <a class="dropdown-item" href="#">{% trans "By Status" %}</a>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="{% url 'inventory:inventory-report' %}">{% trans "View Detailed Report" %}</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-pie pt-4 pb-2">
+                        <canvas id="inventoryPieChart"></canvas>
+                    </div>
+                    <div class="mt-4 text-center small">
+                        <span class="mr-2">
+                            <i class="bi bi-circle-fill text-success"></i> {% trans "In Stock" %}
+                        </span>
+                        <span class="mr-2">
+                            <i class="bi bi-circle-fill text-warning"></i> {% trans "Low Stock" %}
+                        </span>
+                        <span class="mr-2">
+                            <i class="bi bi-circle-fill text-danger"></i> {% trans "Out of Stock" %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Row - Recent Activities and Low Stock -->
+    <div class="row">
+        <!-- Recent Sales -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">{% trans "Recent Sales" %}</h6>
+                    <a href="{% url 'inventory:sale-list' %}" class="btn btn-sm btn-primary">
+                        {% trans "View All" %}
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>{% trans "Invoice #" %}</th>
+                                    <th>{% trans "Date" %}</th>
+                                    <th>{% trans "Customer" %}</th>
+                                    <th>{% trans "Amount" %}</th>
+                                    <th>{% trans "Status" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for sale in recent_sales %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'inventory:sale-detail' sale.id %}">{{ sale.invoice_number }}</a>
+                                    </td>
+                                    <td>{{ sale.sale_date|date:"d/m/Y" }}</td>
+                                    <td>
+                                        {% if sale.customer %}
+                                            {{ sale.customer.name }}
+                                        {% else %}
+                                            {% trans "Walk-in Customer" %}
+                                        {% endif %}
+                                    </td>
+                                    <td>Ksh. {{ sale.total_amount|floatformat:2|intcomma }}</td>
+                                    <td>
+                                        {% if sale.paid %}
+                                            <span class="badge bg-success">{% trans "Paid" %}</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">{% trans "Pending" %}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center">{% trans "No recent sales" %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Low Stock Products -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">{% trans "Low Stock Products" %}</h6>
+                    <a href="{% url 'inventory:inventory-report' %}" class="btn btn-sm btn-primary">
+                        {% trans "View All" %}
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>{% trans "Product" %}</th>
+                                    <th>{% trans "Current Stock" %}</th>
+                                    <th>{% trans "Min. Level" %}</th>
+                                    <th>{% trans "Status" %}</th>
+                                    <th>{% trans "Action" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in low_stock_products %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'inventory:product-detail' product.id %}">{{ product.name }}</a>
+                                    </td>
+                                    <td>{{ product.quantity_in_stock }}</td>
+                                    <td>{{ product.minimum_stock_level }}</td>
+                                    <td>
+                                        {% if product.quantity_in_stock == 0 %}
+                                            <span class="badge bg-danger">{% trans "Out of Stock" %}</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">{% trans "Low Stock" %}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'inventory:product-restock' product.id %}" class="btn btn-sm btn-primary">
+                                            <i class="bi bi-plus-circle"></i> {% trans "Restock" %}
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center">{% trans "No low stock products" %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Row - Recent Purchase Orders and Top Selling Products -->
+    <div class="row">
+        <!-- Recent Purchase Orders -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">{% trans "Recent Purchase Orders" %}</h6>
+                    <a href="{% url 'inventory:purchase-order-list' %}" class="btn btn-sm btn-primary">
+                        {% trans "View All" %}
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>{% trans "PO #" %}</th>
+                                    <th>{% trans "Supplier" %}</th>
+                                    <th>{% trans "Order Date" %}</th>
+                                    <th>{% trans "Status" %}</th>
+                                    <th>{% trans "Amount" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for po in recent_purchase_orders %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'inventory:purchase-order-detail' po.id %}">{{ po.order_number }}</a>
+                                    </td>
+                                    <td>{{ po.supplier.name }}</td>
+                                    <td>{{ po.order_date|date:"d/m/Y" }}</td>
+                                    <td>
+                                        {% if po.status == 'pending' %}
+                                            <span class="badge bg-warning text-dark">{% trans "Pending" %}</span>
+                                        {% elif po.status == 'partially_received' %}
+                                            <span class="badge bg-info">{% trans "Partially Received" %}</span>
+                                        {% elif po.status == 'received' %}
+                                            <span class="badge bg-success">{% trans "Received" %}</span>
+                                        {% elif po.status == 'cancelled' %}
+                                            <span class="badge bg-danger">{% trans "Cancelled" %}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>Ksh. {{ po.total_amount|floatformat:2|intcomma }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center">{% trans "No recent purchase orders" %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Selling Products -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">{% trans "Top Selling Products" %}</h6>
+                    <a href="{% url 'inventory:sales-report' %}" class="btn btn-sm btn-primary">
+                        {% trans "View Report" %}
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if top_products %}
+                    <div class="chart-bar">
+                        <canvas id="topProductsChart"></canvas>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-bar-chart-line fs-1 text-gray-300"></i>
+                        <p class="mt-2">{% trans "Not enough sales data to display top products" %}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Row - Quick Actions and System Status -->
+    <div class="row">
+        <!-- Quick Actions -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">{% trans "Quick Actions" %}</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <a href="{% url 'inventory:pos' %}" class="btn btn-success btn-block py-3">
+                                <i class="bi bi-cart-plus fs-4 d-block mb-2"></i>
+                                {% trans "New Sale" %}
+                            </a>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <a href="{% url 'inventory:product-create' %}" class="btn btn-primary btn-block py-3">
+                                <i class="bi bi-box-seam fs-4 d-block mb-2"></i>
+                                {% trans "Add Product" %}
+                            </a>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <a href="{% url 'inventory:purchase-order-create' %}" class="btn btn-info btn-block py-3">
+                                <i class="bi bi-truck fs-4 d-block mb-2"></i>
+                                {% trans "Create Purchase Order" %}
+                            </a>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <a href="{% url 'inventory:stock-adjustment-create' %}" class="btn btn-warning btn-block py-3 text-dark">
+                                <i class="bi bi-pencil-square fs-4 d-block mb-2"></i>
+                                {% trans "Stock Adjustment" %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Status -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">{% trans "System Status" %}</h6>
+                </div>
+                <div class="card-body">
+                    <h4 class="small font-weight-bold">{% trans "Inventory Health" %} <span class="float-end">{{ inventory_health }}%</span></h4>
+                    <div class="progress mb-4">
+                        <div class="progress-bar bg-{{ inventory_health_color }}" role="progressbar" style="width: {{ inventory_health }}%"
+                            aria-valuenow="{{ inventory_health }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    
+                    <h4 class="small font-weight-bold">{% trans "Pending Orders" %} <span class="float-end">{{ pending_orders_percentage }}%</span></h4>
+                    <div class="progress mb-4">
+                        <div class="progress-bar bg-warning" role="progressbar" style="width: {{ pending_orders_percentage }}%"
+                            aria-valuenow="{{ pending_orders_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    
+                    <h4 class="small font-weight-bold">{% trans "Sales Target" %} <span class="float-end">{{ sales_target_percentage }}%</span></h4>
+                    <div class="progress mb-4">
+                        <div class="progress-bar bg-info" role="progressbar" style="width: {{ sales_target_percentage }}%"
+                            aria-valuenow="{{ sales_target_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    
+                    <h4 class="small font-weight-bold">{% trans "Customer Satisfaction" %} <span class="float-end">{{ customer_satisfaction }}%</span></h4>
+                    <div class="progress mb-4">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ customer_satisfaction }}%"
+                            aria-valuenow="{{ customer_satisfaction }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    
+                    <div class="mt-3 text-center">
+                        <p class="mb-0">{% trans "Last system update:" %} {{ last_update|date:"d/m/Y H:i" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Sales Chart
+    var ctx = document.getElementById("salesChart");
+    var salesChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ sales_chart_labels|safe }},
+            datasets: [{
+                label: "{% trans 'Sales' %}",
+                lineTension: 0.3,
+                backgroundColor: "rgba(78, 115, 223, 0.05)",
+                borderColor: "rgba(78, 115, 223, 1)",
+                pointRadius: 3,
+                pointBackgroundColor: "rgba(78, 115, 223, 1)",
+                pointBorderColor: "rgba(78, 115, 223, 1)",
+                pointHoverRadius: 3,
+                pointHoverBackgroundColor: "rgba(78, 115, 223, 1)",
+                pointHoverBorderColor: "rgba(78, 115, 223, 1)",
+                pointHitRadius: 10,
+                pointBorderWidth: 2,
+                data: {{ sales_chart_data|safe }},
+            }],
+        },
+        options: {
+            maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    left: 10,
+                    right: 25,
+                    top: 25,
+                    bottom: 0
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false,
+                        drawBorder: false
+                    },
+                    ticks: {
+                        maxTicksLimit: 7
+                    }
+                },
+                y: {
+                    ticks: {
+                        maxTicksLimit: 5,
+                        padding: 10,
+                        callback: function(value, index, values) {
+                            return 'Ksh. ' + value.toLocaleString();
+                        }
+                    },
+                    grid: {
+                        color: "rgb(234, 236, 244)",
+                        zeroLineColor: "rgb(234, 236, 244)",
+                        drawBorder: false,
+                        borderDash: [2],
+                        zeroLineBorderDash: [2]
+                    }
+                },
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: "rgb(255,255,255)",
+                    bodyColor: "#858796",
+                    titleMarginBottom: 10,
+                    titleColor: '#6e707e',
+                    titleFontSize: 14,
+                    borderColor: '#dddfeb',
+                    borderWidth: 1,
+                    xPadding: 15,
+                    yPadding: 15,
+                    displayColors: false,
+                    intersect: false,
+                    mode: 'index',
+                    caretPadding: 10,
+                    callbacks: {
+                        label: function(context) {
+                            var label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += 'Ksh. ' + context.parsed.y.toLocaleString();
+                            }
+                            return label;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Inventory Pie Chart
+    var ctx2 = document.getElementById("inventoryPieChart");
+    var inventoryPieChart = new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+            labels: ["{% trans 'In Stock' %}", "{% trans 'Low Stock' %}", "{% trans 'Out of Stock' %}"],
+            datasets: [{
+                data: [{{ in_stock_count }}, {{ low_stock_count }}, {{ out_of_stock_count }}],
+                backgroundColor: ['#1cc88a', '#f6c23e', '#e74a3b'],
+                hoverBackgroundColor: ['#17a673', '#dda20a', '#be2617'],
+                hoverBorderColor: "rgba(234, 236, 244, 1)",
+            }],
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: "rgb(255,255,255)",
+                    bodyColor: "#858796",
+                    borderColor: '#dddfeb',
+                    borderWidth: 1,
+                    xPadding: 15,
+                    yPadding: 15,
+                    displayColors: false,
+                    caretPadding: 10,
+                }
+            },
+            cutout: '70%',
+        },
+    });
+
+    {% if top_products %}
+    // Top Products Chart
+    var ctx3 = document.getElementById("topProductsChart");
+    var topProductsChart = new Chart(ctx3, {
+        type: 'bar',
+        data: {
+            labels: {{ top_products_labels|safe }},
+            datasets: [{
+                label: "{% trans 'Units Sold' %}",
+                backgroundColor: "#4e73df",
+                hoverBackgroundColor: "#2e59d9",
+                borderColor: "#4e73df",
+                data: {{ top_products_data|safe }},
+            }],
+        },
+        options: {
+            maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    left: 10,
+                    right: 25,
+                    top: 25,
+                    bottom: 0
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false,
+                        drawBorder: false
+                    },
+                    ticks: {
+                        maxTicksLimit: 6
+                    }
+                },
+                y: {
+                    ticks: {
+                        min: 0,
+                        maxTicksLimit: 5,
+                        padding: 10,
+                    },
+                    grid: {
+                        color: "rgb(234, 236, 244)",
+                        zeroLineColor: "rgb(234, 236, 244)",
+                        drawBorder: false,
+                        borderDash: [2],
+                        zeroLineBorderDash: [2]
+                    }
+                },
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+    {% endif %}
+</script>
+{% endblock %}

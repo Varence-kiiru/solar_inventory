@@ -1,0 +1,187 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "Purchase Orders" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'inventory:dashboard' %}">{% trans "Dashboard" %}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{% trans "Purchase Orders" %}</li>
+        </ol>
+    </nav>
+
+    <!-- Header with action buttons -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">{% trans "Purchase Orders" %}</h1>
+        <a href="{% url 'inventory:purchase-order-create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i> {% trans "New Purchase Order" %}
+        </a>
+    </div>
+
+    <!-- Filters and search -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label for="search" class="form-label">{% trans "Search" %}</label>
+                    <input type="text" class="form-control" id="search" name="search" 
+                           placeholder="{% trans 'Search by order number or supplier' %}" 
+                           value="{{ search }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="status" class="form-label">{% trans "Status" %}</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">{% trans "All Statuses" %}</option>
+                        {% for status_value, status_label in status_choices %}
+                        <option value="{{ status_value }}" {% if selected_status == status_value %}selected{% endif %}>
+                            {{ status_label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="supplier" class="form-label">{% trans "Supplier" %}</label>
+                    <select class="form-select" id="supplier" name="supplier">
+                        <option value="">{% trans "All Suppliers" %}</option>
+                        {% for supplier in suppliers %}
+                        <option value="{{ supplier.id }}" {% if selected_supplier == supplier.id|stringformat:"i" %}selected{% endif %}>
+                            {{ supplier.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search me-1"></i> {% trans "Filter" %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Purchase Orders List -->
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>{% trans "Order #" %}</th>
+                            <th>{% trans "Supplier" %}</th>
+                            <th>{% trans "Order Date" %}</th>
+                            <th>{% trans "Expected Delivery" %}</th>
+                            <th>{% trans "Status" %}</th>
+                            <th>{% trans "Total" %}</th>
+                            <th class="text-end">{% trans "Actions" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if orders %}
+                            {% for order in orders %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'inventory:purchase-order-detail' order.id %}" class="fw-bold text-decoration-none">
+                                        {{ order.order_number }}
+                                    </a>
+                                </td>
+                                <td>{{ order.supplier.name }}</td>
+                                <td>{{ order.order_date|date:"M d, Y" }}</td>
+                                <td>
+                                    {{ order.expected_delivery_date|date:"M d, Y" }}
+                                    {% if order.is_overdue %}
+                                    <span class="badge bg-danger ms-1">{% trans "Overdue" %}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if order.status == 'pending' %}
+                                    <span class="badge bg-warning text-dark">{% trans "Pending" %}</span>
+                                    {% elif order.status == 'partially_received' %}
+                                    <span class="badge bg-info">{% trans "Partially Received" %}</span>
+                                    {% elif order.status == 'received' %}
+                                    <span class="badge bg-success">{% trans "Received" %}</span>
+                                    {% elif order.status == 'cancelled' %}
+                                    <span class="badge bg-danger">{% trans "Cancelled" %}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ order.total_amount|floatformat:2 }}</td>
+                                <td class="text-end">
+                                    <div class="btn-group">
+                                        <a href="{% url 'inventory:purchase-order-detail' order.id %}" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        {% if order.status == 'pending' or order.status == 'partially_received' %}
+                                        <a href="{% url 'inventory:purchase-order-update' order.id %}" class="btn btn-sm btn-outline-secondary">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center py-4">
+                                    <div class="text-muted">
+                                        <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                                        <p>{% trans "No purchase orders found." %}</p>
+                                        <a href="{% url 'inventory:purchase-order-create' %}" class="btn btn-sm btn-primary">
+                                            <i class="bi bi-plus-lg me-1"></i> {% trans "Create Purchase Order" %}
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1{% if search %}&search={{ search }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_supplier %}&supplier={{ selected_supplier }}{% endif %}" aria-label="First">
+                    <span aria-hidden="true">««</span>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_supplier %}&supplier={{ selected_supplier }}{% endif %}" aria-label="Previous">
+                    <span aria-hidden="true">«</span>
+                </a>
+            </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_supplier %}&supplier={{ selected_supplier }}{% endif %}">{{ num }}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_supplier %}&supplier={{ selected_supplier }}{% endif %}" aria-label="Next">
+                    <span aria-hidden="true">»</span>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_supplier %}&supplier={{ selected_supplier }}{% endif %}" aria-label="Last">
+                    <span aria-hidden="true">»»</span>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

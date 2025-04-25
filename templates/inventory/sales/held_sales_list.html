@@ -1,0 +1,39 @@
+{% load i18n %}
+
+{% if held_sales %}
+    {% for sale in held_sales %}
+        <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center load-held-sale" 
+           data-sale-id="{{ sale.id }}">
+            <div>
+                <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1">
+                        {% if sale.customer %}
+                            {{ sale.customer.name }}
+                        {% else %}
+                            {% trans "Walk-in Customer" %}
+                        {% endif %}
+                    </h6>
+                    <small>{{ sale.created_at|date:"d/m/Y H:i" }}</small>
+                </div>
+                <p class="mb-1">
+                    {% trans "Items" %}: {{ sale.item_count }} | 
+                    {% trans "Total" %}: Ksh. {{ sale.total_amount|floatformat:2 }}
+                </p>
+                {% if sale.notes %}
+                    <small class="text-muted">{{ sale.notes|truncatechars:50 }}</small>
+                {% endif %}
+            </div>
+            <div class="btn-group btn-group-sm" role="group">
+                <button type="button" class="btn btn-outline-danger delete-held-sale" 
+                        data-sale-id="{{ sale.id }}" title="{% trans 'Delete' %}">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </a>
+    {% endfor %}
+{% else %}
+    <div class="text-center py-4">
+        <i class="bi bi-cart-x fs-1 text-muted"></i>
+        <p class="mt-3">{% trans "No held sales found" %}</p>
+    </div>
+{% endif %}

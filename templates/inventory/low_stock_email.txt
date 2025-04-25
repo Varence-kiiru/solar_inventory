@@ -1,0 +1,22 @@
+{% load i18n %}
+
+{% trans "Low Stock Alert" %}
+
+{% trans "Product:" %} {{ product.name }}
+{% trans "SKU:" %} {{ product.sku|default:"N/A" }}
+{% trans "Current Stock:" %} {{ product.quantity_in_stock }}
+{% trans "Reorder Level:" %} {{ product.reorder_level }}
+
+{% trans "This product has fallen below its reorder level. Please consider restocking soon." %}
+
+{% trans "Details:" %}
+- {% trans "Category:" %} {{ product.category.name|default:"Uncategorized" }}
+- {% trans "Supplier:" %} {{ product.supplier.name|default:"N/A" if product.supplier else "N/A" }}
+{% if product.supplier and product.supplier.phone %}
+- {% trans "Supplier Phone:" %} {{ product.supplier.phone }}
+{% endif %}
+{% if product.supplier and product.supplier.email %}
+- {% trans "Supplier Email:" %} {{ product.supplier.email }}
+{% endif %}
+
+{% trans "This is an automated notification from your Solar Inventory System." %}

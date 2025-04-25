@@ -1,0 +1,72 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "Delete Stock Adjustment" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
+        <h1>{% trans "Delete Stock Adjustment" %}</h1>
+        <div>
+            <a href="{% url 'inventory:stock-adjustment-list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> {% trans "Back to List" %}
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    <span class="fw-bold">{% trans "Confirm Deletion" %}</span>
+                </div>
+                <div class="card-body">
+                    <p class="mb-4">
+                        {% trans "Are you sure you want to delete the following stock adjustment?" %}
+                    </p>
+                    
+                    <div class="alert alert-light">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>{% trans "Product" %}:</strong> {{ object.product.name }}</p>
+                                <p class="mb-1">
+                                    <strong>{% trans "Adjustment Type" %}:</strong> 
+                                    {% if object.adjustment_type == 'increase' %}
+                                        <span class="badge bg-success">{% trans "Increase" %}</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">{% trans "Decrease" %}</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>{% trans "Quantity" %}:</strong> {{ object.quantity }}</p>
+                                <p class="mb-1"><strong>{% trans "Date" %}:</strong> {{ object.date|date:"d/m/Y" }}</p>
+                            </div>
+                        </div>
+                        <p class="mb-1"><strong>{% trans "Reason" %}:</strong> {{ object.reason }}</p>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-circle me-2"></i>
+                        {% trans "Warning: This action cannot be undone. Deleting this adjustment will not automatically revert the stock changes." %}
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'inventory:stock-adjustment-detail' object.id %}" class="btn btn-secondary">
+                                {% trans "Cancel" %}
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-trash me-1"></i> {% trans "Delete" %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

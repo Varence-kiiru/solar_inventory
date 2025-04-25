@@ -1,0 +1,161 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "Stock Count" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
+        <h1>{% trans "Stock Count" %}</h1>
+        <div>
+            <a href="{% url 'inventory:stock-adjustment-list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> {% trans "Back to Adjustments" %}
+            </a>
+        </div>
+    </div>
+
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="bi bi-clipboard-check me-1"></i>
+                    <span class="fw-bold">{% trans "Physical Inventory Count" %}</span>
+                </div>
+                <div class="d-flex align-items-center">
+                    <input type="text" id="searchInput" class="form-control form-control-sm" 
+                           placeholder="{% trans 'Search products...' %}">
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-4">
+                {% trans "Enter the actual counted quantities for each product. If the counted quantity differs from the system quantity, an adjustment will be automatically created." %}
+            </p>
+
+            <form method="post" id="stockCountForm">
+                {% csrf_token %}
+                <div class="table-responsive">
+                    <table id="stockCountTable" class="table table-striped table-hover table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>{% trans "Product" %}</th>
+                                <th>{% trans "SKU" %}</th>
+                                <th class="text-center">{% trans "System Quantity" %}</th>
+                                <th class="text-center">{% trans "Counted Quantity" %}</th>
+                                <th class="text-center">{% trans "Difference" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in products %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'inventory:product-detail' product.id %}">
+                                        {{ product.name }}
+                                    </a>
+                                    <input type="hidden" name="product_id" value="{{ product.id }}">
+                                </td>
+                                <td>{{ product.sku|default:"-" }}</td>
+                                <td class="text-center system-quantity">{{ product.quantity_in_stock }}</td>
+                                <td class="text-center">
+                                    <input type="number" name="counted_quantity" class="form-control form-control-sm counted-quantity" 
+                                           value="{{ product.quantity_in_stock }}" min="0">
+                                </td>
+                                <td class="text-center quantity-difference">0</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center">
+                                    {% trans "No products found in the inventory." %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex justify-content-end mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i> {% trans "Save Count Results" %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Initialize DataTable
+        var table = $('#stockCountTable').DataTable({
+            responsive: true,
+            pageLength: 25,
+            lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+            language: {
+                search: "{% trans 'Search:' %}",
+                lengthMenu: "{% trans 'Show _MENU_ entries' %}",
+                info: "{% trans 'Showing _START_ to _END_ of _TOTAL_ entries' %}",
+                infoEmpty: "{% trans 'Showing 0 to 0 of 0 entries' %}",
+                infoFiltered: "{% trans '(filtered from _MAX_ total entries)' %}",
+                emptyTable: "{% trans 'No data available in table' %}",
+                zeroRecords: "{% trans 'No matching records found' %}",
+                paginate: {
+                    first: "{% trans 'First' %}",
+                    last: "{% trans 'Last' %}",
+                    next: "{% trans 'Next' %}",
+                    previous: "{% trans 'Previous' %}"
+                }
+            }
+        });
+
+        // Connect search box to DataTable
+        $('#searchInput').on('keyup', function() {
+            table.search(this.value).draw();
+        });
+
+        // Calculate difference when counted quantity changes
+        $('.counted-quantity').on('input', function() {
+            var row = $(this).closest('tr');
+            var systemQty = parseInt(row.find('.system-quantity').text());
+            var countedQty = parseInt($(this).val()) || 0;
+            var difference = countedQty - systemQty;
+            
+            row.find('.quantity-difference').text(difference);
+            
+            // Highlight differences
+            if (difference > 0) {
+                row.find('.quantity-difference').removeClass('text-danger').addClass('text-success');
+            } else if (difference < 0) {
+                row.find('.quantity-difference').removeClass('text-success').addClass('text-danger');
+            } else {
+                row.find('.quantity-difference').removeClass('text-success text-danger');
+            }
+        });
+
+        // Confirm before submitting
+        $('#stockCountForm').on('submit', function(e) {
+            var hasDifferences = false;
+            $('.quantity-difference').each(function() {
+                if ($(this).text() != '0') {
+                    hasDifferences = true;
+                    return false;
+                }
+            });
+
+            if (hasDifferences) {
+                if (!confirm('{% trans "This will create stock adjustments for products with differences. Continue?" %}')) {
+                    e.preventDefault();
+                    return false;
+                }
+            } else {
+                if (!confirm('{% trans "No differences detected. Do you still want to save this count?" %}')) {
+                    e.preventDefault();
+                    return false;
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

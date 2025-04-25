@@ -1,0 +1,99 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}{% trans "Import Products" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'inventory:dashboard' %}">{% trans "Dashboard" %}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'inventory:product-list' %}">{% trans "Products" %}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{% trans "Import Products" %}</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">{% trans "Import Products" %}</h5>
+                </div>
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <h6 class="alert-heading"><i class="bi bi-info-circle-fill me-2"></i> {% trans "Instructions" %}</h6>
+                            <p>{% trans "Upload a CSV or Excel file containing your product data. Make sure your file follows the required format." %}</p>
+                            <p class="mb-0">{% trans "Required columns: Name, SKU, Category, Unit Price, Quantity" %}</p>
+                        </div>
+                        
+                        {% if form.errors %}
+                        <div class="alert alert-danger">
+                            <h6 class="alert-heading">{% trans "Error" %}</h6>
+                            {{ form.errors }}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="mb-4">
+                            <h6>{% trans "Upload File" %}</h6>
+                            <div class="mb-3">
+                                {{ form.file|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h6>{% trans "Import Options" %}</h6>
+                            <div class="form-check mb-2">
+                                {{ form.update_existing }}
+                                <label class="form-check-label" for="{{ form.update_existing.id_for_label }}">
+                                    {% trans "Update existing products if SKU matches" %}
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                {{ form.skip_errors }}
+                                <label class="form-check-label" for="{{ form.skip_errors.id_for_label }}">
+                                    {% trans "Continue import if some rows have errors" %}
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h6>{% trans "Sample Template" %}</h6>
+                            <p class="text-muted">{% trans "Download a sample template to see the required format:" %}</p>
+                            <div class="d-flex">
+                                <a href="{% url 'inventory:product-export-template' %}?format=csv" class="btn btn-outline-primary me-2">
+                                    <i class="bi bi-filetype-csv me-1"></i> {% trans "CSV Template" %}
+                                </a>
+                                <a href="{% url 'inventory:product-export-template' %}?format=excel" class="btn btn-outline-primary">
+                                    <i class="bi bi-file-earmark-excel me-1"></i> {% trans "Excel Template" %}
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <h6 class="alert-heading"><i class="bi bi-exclamation-triangle-fill me-2"></i> {% trans "Important Notes" %}</h6>
+                            <ul class="mb-0">
+                                <li>{% trans "SKUs must be unique. Duplicate SKUs will be treated as updates if the update option is enabled." %}</li>
+                                <li>{% trans "Categories and brands will be created if they don't exist." %}</li>
+                                <li>{% trans "Large imports may take some time to process." %}</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-white d-flex justify-content-between">
+                        <a href="{% url 'inventory:product-list' %}" class="btn btn-outline-secondary">
+                            {% trans "Cancel" %}
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-upload me-1"></i> {% trans "Import Products" %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

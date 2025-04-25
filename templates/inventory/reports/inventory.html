@@ -1,0 +1,254 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load i18n %}
+{% load humanize %}
+
+{% block title %}{% trans "Inventory Report" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="h3 mb-4 text-gray-800">{% trans "Inventory Report" %}</h1>
+    
+    <!-- Category Filter -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">{% trans "Filter" %}</h6>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-6">
+                    <label for="category" class="form-label">{% trans "Category" %}</label>
+                    <select class="form-select" id="category" name="category">
+                        <option value="">{% trans "All Categories" %}</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"s" %}selected{% endif %}>
+                            {{ cat.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">{% trans "Apply Filter" %}</button>
+                    <button type="submit" formmethod="post" class="btn btn-outline-secondary ms-2">
+                        <i class="bi bi-download"></i> {% trans "Export CSV" %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Inventory Summary -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                {% trans "Total Inventory Value" %}
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">Ksh. {{ inventory_value|floatformat:2|intcomma }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-box-seam fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                {% trans "Low Stock Items" %}
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ low_stock.count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                {% trans "Out of Stock Items" %}
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ out_of_stock.count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-x-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Products by Category -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">{% trans "Inventory by Category" %}</h6>
+        </div>
+        <div class="card-body">
+            <div class="chart-pie pt-4 pb-2">
+                <canvas id="categoryChart"></canvas>
+            </div>
+            <div class="mt-4 text-center small">
+                {% for category in products_by_category %}
+                <span class="mr-2">
+                    <i class="fas fa-circle" style="color: {% cycle '#4e73df' '#1cc88a' '#36b9cc' '#f6c23e' '#e74a3b' '#858796' '#5a5c69' '#2e59d9' '#17a673' '#2c9faf' %}"></i> {{ category.category__name|default:"Uncategorized" }}
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Top Products by Value -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">{% trans "Top Products by Value" %}</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="topProductsTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>{% trans "Product" %}</th>
+                            <th>{% trans "Category" %}</th>
+                            <th>{% trans "Quantity" %}</th>
+                            <th>{% trans "Cost Price" %}</th>
+                            <th>{% trans "Value" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in top_products %}
+                        <tr>
+                            <td>{{ product.name }}</td>
+                            <td>{{ product.category.name|default:"Uncategorized" }}</td>
+                            <td>{{ product.quantity_in_stock }}</td>
+                            <td>Ksh. {{ product.cost_price|floatformat:2|intcomma }}</td>
+                            <td>Ksh. {{ product.inventory_value|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">{% trans "No products found" %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Low Stock Products -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">{% trans "Low Stock Products" %}</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="lowStockTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>{% trans "Product" %}</th>
+                            <th>{% trans "Category" %}</th>
+                            <th>{% trans "Current Stock" %}</th>
+                            <th>{% trans "Reorder Level" %}</th>
+                            <th>{% trans "Actions" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in low_stock %}
+                        <tr>
+                            <td>{{ product.name }}</td>
+                            <td>{{ product.category.name|default:"Uncategorized" }}</td>
+                            <td>{{ product.quantity_in_stock }}</td>
+                            <td>{{ product.reorder_level }}</td>
+                            <td>
+                                <a href="{% url 'inventory:product-restock' product.id %}" class="btn btn-sm btn-primary">
+                                    {% trans "Restock" %}
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">{% trans "No low stock products" %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Category Chart
+        var ctx = document.getElementById('categoryChart').getContext('2d');
+        var categoryData = [
+            {% for category in products_by_category %}
+                {{ category.total_value|default:0 }},
+            {% endfor %}
+        ];
+        var categoryLabels = [
+            {% for category in products_by_category %}
+                '{{ category.category__name|default:"Uncategorized" }}',
+            {% endfor %}
+        ];
+        
+        // Predefined colors instead of generating them
+        var backgroundColors = [
+            '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', 
+            '#858796', '#5a5c69', '#2e59d9', '#17a673', '#2c9faf'
+        ];
+        
+        // If we have more categories than colors, repeat the colors
+        while (backgroundColors.length < categoryLabels.length) {
+            backgroundColors = backgroundColors.concat(backgroundColors);
+        }
+        
+        var categoryChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: categoryLabels,
+                datasets: [{
+                    data: categoryData,
+                    backgroundColor: backgroundColors.slice(0, categoryLabels.length),
+                    hoverBackgroundColor: backgroundColors.slice(0, categoryLabels.length),
+                    hoverBorderColor: "rgba(234, 236, 244, 1)",
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                var label = context.label || '';
+                                var value = context.parsed || 0;
+                                return label + ': Ksh. ' + value.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Initialize DataTables
+        $('#topProductsTable').DataTable();
+        $('#lowStockTable').DataTable();
+    });
+</script>
+{% endblock %}

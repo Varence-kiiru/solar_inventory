@@ -1,0 +1,215 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}{% trans "Export Products" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'inventory:dashboard' %}">{% trans "Dashboard" %}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'inventory:product-list' %}">{% trans "Products" %}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{% trans "Export Products" %}</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">{% trans "Export Products" %}</h5>
+                </div>
+                <form method="post" action="{% url 'inventory:product-export' %}">
+                    {% csrf_token %}
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                            {% trans "Select the options below to customize your product export." %}
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h6>{% trans "Export Format" %}</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="format" id="formatCsv" value="csv" checked>
+                                        <label class="form-check-label" for="formatCsv">
+                                            <i class="bi bi-filetype-csv me-2"></i> {% trans "CSV" %}
+                                            <small class="d-block text-muted">{% trans "Compatible with most spreadsheet applications" %}</small>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="format" id="formatExcel" value="excel">
+                                        <label class="form-check-label" for="formatExcel">
+                                            <i class="bi bi-file-earmark-excel me-2"></i> {% trans "Excel (.xlsx)" %}
+                                            <small class="d-block text-muted">{% trans "Microsoft Excel format" %}</small>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h6>{% trans "Products to Export" %}</h6>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="products_to_export" id="allProducts" value="all" checked>
+                                <label class="form-check-label" for="allProducts">
+                                    {% trans "All Products" %}
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="products_to_export" id="activeProducts" value="active">
+                                <label class="form-check-label" for="activeProducts">
+                                    {% trans "Active Products Only" %}
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="products_to_export" id="lowStockProducts" value="low_stock">
+                                <label class="form-check-label" for="lowStockProducts">
+                                    {% trans "Low Stock Products" %}
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="products_to_export" id="filteredProducts" value="filtered">
+                                <label class="form-check-label" for="filteredProducts">
+                                    {% trans "Filtered Products" %}
+                                </label>
+                            </div>
+                            
+                            <div class="mt-3 ps-4 filtered-options" style="display: none;">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="category" class="form-label">{% trans "Category" %}</label>
+                                        <select class="form-select" id="category" name="category">
+                                            <option value="">{% trans "All Categories" %}</option>
+                                            {% for category in categories %}
+                                            <option value="{{ category.id }}">{{ category.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="brand" class="form-label">{% trans "Brand" %}</label>
+                                        <select class="form-select" id="brand" name="brand">
+                                            <option value="">{% trans "All Brands" %}</option>
+                                            {% for brand in brands %}
+                                            <option value="{{ brand.id }}">{{ brand.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="supplier" class="form-label">{% trans "Supplier" %}</label>
+                                        <select class="form-select" id="supplier" name="supplier">
+                                            <option value="">{% trans "All Suppliers" %}</option>
+                                            {% for supplier in suppliers %}
+                                            <option value="{{ supplier.id }}">{{ supplier.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="stock_status" class="form-label">{% trans "Stock Status" %}</label>
+                                        <select class="form-select" id="stock_status" name="stock_status">
+                                            <option value="">{% trans "Any Status" %}</option>
+                                            <option value="in_stock">{% trans "In Stock" %}</option>
+                                            <option value="low_stock">{% trans "Low Stock" %}</option>
+                                            <option value="out_of_stock">{% trans "Out of Stock" %}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h6>{% trans "Fields to Include" %}</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="fields" id="fieldBasic" value="basic" checked>
+                                        <label class="form-check-label" for="fieldBasic">
+                                            {% trans "Basic Information" %}
+                                            <small class="d-block text-muted">{% trans "Name, SKU, Barcode, Category, Brand" %}</small>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="fields" id="fieldPricing" value="pricing" checked>
+                                        <label class="form-check-label" for="fieldPricing">
+                                            {% trans "Pricing Information" %}
+                                            <small class="d-block text-muted">{% trans "Unit Price, Cost Price, Tax Rate, Discount" %}</small>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="fields" id="fieldInventory" value="inventory" checked>
+                                        <label class="form-check-label" for="fieldInventory">
+                                            {% trans "Inventory Information" %}
+                                            <small class="d-block text-muted">{% trans "Quantity, Min Stock Level, Location" %}</small>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="fields" id="fieldAdditional" value="additional">
+                                        <label class="form-check-label" for="fieldAdditional">
+                                            {% trans "Additional Information" %}
+                                            <small class="d-block text-muted">{% trans "Description, Weight, Dimensions, Tags" %}</small>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-white d-flex justify-content-between">
+                        <a href="{% url 'inventory:product-list' %}" class="btn btn-outline-secondary">
+                            {% trans "Cancel" %}
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-download me-1"></i> {% trans "Export Products" %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const filteredRadio = document.getElementById('filteredProducts');
+        const filteredOptions = document.querySelector('.filtered-options');
+        
+        // Show/hide filtered options based on radio selection
+        document.querySelectorAll('input[name="products_to_export"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (filteredRadio.checked) {
+                    filteredOptions.style.display = 'block';
+                } else {
+                    filteredOptions.style.display = 'none';
+                }
+            });
+        });
+        
+        // Ensure at least one field is selected
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const fieldCheckboxes = document.querySelectorAll('input[name="fields"]:checked');
+            if (fieldCheckboxes.length === 0) {
+                e.preventDefault();
+                alert("{% trans 'Please select at least one field to include in the export.' %}");
+            }
+        });
+    });
+</script>
+{% endblock %}
+

@@ -1,0 +1,247 @@
+{% load static %}
+{% load i18n %}
+{% load humanize %}
+
+<div class="invoice-container">
+    <!-- Invoice Header -->
+    <div class="row mb-4">
+        <div class="col-6">
+            <div class="company-info">
+                <img src="{% static 'img/company-logo.png' %}" alt="Company Logo" class="img-fluid mb-3" style="max-height: 80px;">
+                <h2 class="company-name">Solar Inventory System</h2>
+                <p class="company-address">
+                    123 Solar Street<br>
+                    Nairobi, Kenya<br>
+                    Phone: +254 123 456 789<br>
+                    Email: info@solarinventory.com
+                </p>
+            </div>
+        </div>
+        <div class="col-6 text-end">
+            <div class="invoice-details">
+                <h1 class="text-primary">{% trans "INVOICE" %}</h1>
+                <div class="invoice-id mb-2">
+                    <strong>{% trans "Invoice No:" %}</strong> {{ sale.invoice_number }}
+                </div>
+                <div class="invoice-date mb-2">
+                    <strong>{% trans "Date:" %}</strong> {{ sale.sale_date|date:"d/m/Y" }}
+                </div>
+                <div class="invoice-status mb-2">
+                    {% if sale.paid %}
+                        <span class="badge bg-success">{% trans "PAID" %}</span>
+                    {% else %}
+                        <span class="badge bg-warning text-dark">{% trans "PENDING" %}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Information -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-light">
+                <div class="card-body">
+                    <h5 class="card-title">{% trans "Bill To:" %}</h5>
+                    {% if sale.customer %}
+                        <div class="customer-name mb-1">{{ sale.customer.name }}</div>
+                        {% if sale.customer.address %}
+                            <div class="customer-address mb-1">{{ sale.customer.address|linebreaksbr }}</div>
+                        {% endif %}
+                        {% if sale.customer.phone %}
+                            <div class="customer-phone mb-1">{% trans "Phone:" %} {{ sale.customer.phone }}</div>
+                        {% endif %}
+                        {% if sale.customer.email %}
+                            <div class="customer-email mb-1">{% trans "Email:" %} {{ sale.customer.email }}</div>
+                        {% endif %}
+                        {% if sale.customer.tax_id %}
+                            <div class="customer-tax-id">{% trans "Tax ID:" %} {{ sale.customer.tax_id }}</div>
+                        {% endif %}
+                    {% else %}
+                        <div class="customer-name">{% trans "Walk-in Customer" %}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoice Items -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="table-responsive">
+                <table class="table table-striped table-bordered">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>{% trans "Item" %}</th>
+                            <th class="text-center">{% trans "Quantity" %}</th>
+                            <th class="text-end">{% trans "Unit Price" %}</th>
+                            <th class="text-end">{% trans "Discount" %}</th>
+                            <th class="text-end">{% trans "Total" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in sale.saleitems_set.all %}
+                        <tr>
+                            <td>
+                                <div class="item-name">{{ item.product.name }}</div>
+                                {% if item.product.sku %}
+                                    <div class="item-sku text-muted small">{% trans "SKU:" %} {{ item.product.sku }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">{{ item.quantity }}</td>
+                            <td class="text-end">Ksh. {{ item.unit_price|floatformat:2|intcomma }}</td>
+                            <td class="text-end">
+                                {% if item.discount_amount %}
+                                    Ksh. {{ item.discount_amount|floatformat:2|intcomma }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="text-end">Ksh. {{ item.total_price|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="4" class="text-end"><strong>{% trans "Subtotal:" %}</strong></td>
+                            <td class="text-end">Ksh. {{ sale.subtotal|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% if sale.discount_amount %}
+                        <tr>
+                            <td colspan="4" class="text-end"><strong>{% trans "Discount:" %}</strong></td>
+                            <td class="text-end">Ksh. {{ sale.discount_amount|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if sale.tax_amount %}
+                        <tr>
+                            <td colspan="4" class="text-end"><strong>{% trans "Tax ({{ sale.tax_rate }}%):" %}</strong></td>
+                            <td class="text-end">Ksh. {{ sale.tax_amount|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr class="table-primary">
+                            <td colspan="4" class="text-end"><strong>{% trans "TOTAL:" %}</strong></td>
+                            <td class="text-end"><strong>Ksh. {{ sale.total_amount|floatformat:2|intcomma }}</strong></td>
+                        </tr>
+                        {% if sale.amount_paid %}
+                        <tr>
+                            <td colspan="4" class="text-end"><strong>{% trans "Amount Paid:" %}</strong></td>
+                            <td class="text-end">Ksh. {{ sale.amount_paid|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if sale.balance_due %}
+                        <tr class="{% if sale.balance_due > 0 %}table-warning{% else %}table-success{% endif %}">
+                            <td colspan="4" class="text-end"><strong>{% trans "Balance Due:" %}</strong></td>
+                            <td class="text-end"><strong>Ksh. {{ sale.balance_due|floatformat:2|intcomma }}</strong></td>
+                        </tr>
+                        {% endif %}
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Information -->
+    {% if sale.payment_method or sale.payment_reference %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-light">
+                <div class="card-body">
+                    <h5 class="card-title">{% trans "Payment Information" %}</h5>
+                    <div class="row">
+                        {% if sale.payment_method %}
+                        <div class="col-md-6">
+                            <strong>{% trans "Payment Method:" %}</strong> {{ sale.payment_method }}
+                        </div>
+                        {% endif %}
+                        {% if sale.payment_reference %}
+                        <div class="col-md-6">
+                            <strong>{% trans "Reference:" %}</strong> {{ sale.payment_reference }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Notes and Terms -->
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            {% if sale.notes %}
+            <div class="card border-light h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{% trans "Notes" %}</h5>
+                    <p class="card-text">{{ sale.notes|linebreaksbr }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="card border-light h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{% trans "Terms & Conditions" %}</h5>
+                    <p class="card-text">
+                        1. Payment is due within 30 days.<br>
+                        2. Goods once sold cannot be returned.<br>
+                        3. All prices include VAT where applicable.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="row">
+        <div class="col-12 text-center">
+            <div class="invoice-footer">
+                <p class="mb-0">{% trans "Thank you for your business!" %}</p>
+                <p class="small text-muted">
+                    {% trans "This invoice was generated by Solar Inventory System" %}<br>
+                    {% trans "Invoice generated on" %} {% now "F j, Y H:i" %}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .invoice-container {
+        padding: 20px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .company-name {
+        color: #2c3e50;
+        font-weight: 600;
+    }
+    .company-address {
+        color: #7f8c8d;
+    }
+    .invoice-details h1 {
+        font-weight: 700;
+        color: #3498db;
+    }
+    .customer-name {
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+    .item-name {
+        font-weight: 500;
+    }
+    .invoice-footer {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #eee;
+    }
+    @media print {
+        .invoice-container {
+            padding: 0;
+        }
+        .card {
+            border: none !important;
+        }
+        .card-body {
+            padding: 0.5rem 0;
+        }
+    }
+</style>

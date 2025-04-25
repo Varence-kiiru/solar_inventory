@@ -1,0 +1,70 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "Delete Supplier" %}: {{ supplier.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'inventory:dashboard' %}">{% trans "Dashboard" %}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'inventory:supplier-list' %}">{% trans "Suppliers" %}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'inventory:supplier-detail' supplier.id %}">{{ supplier.name }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{% trans "Delete" %}</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>{% trans "Delete Supplier" %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-circle me-2"></i>
+                        {% trans "Warning: This action cannot be undone!" %}
+                    </div>
+                    
+                    <p class="mb-4">
+                        {% blocktrans with name=supplier.name %}
+                        Are you sure you want to delete the supplier <strong>"{{ name }}"</strong>?
+                        {% endblocktrans %}
+                    </p>
+                    
+                    {% if related_products or related_orders %}
+                    <div class="alert alert-danger mb-4">
+                        <h6 class="alert-heading">{% trans "This supplier has related records:" %}</h6>
+                        <ul class="mb-0 mt-2">
+                            {% if related_products %}
+                            <li>{% blocktrans with count=related_products %}{{ count }} product(s) associated with this supplier{% endblocktrans %}</li>
+                            {% endif %}
+                            
+                            {% if related_orders %}
+                            <li>{% blocktrans with count=related_orders %}{{ count }} purchase order(s) associated with this supplier{% endblocktrans %}</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'inventory:supplier-detail' supplier.id %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i> {% trans "Cancel" %}
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-trash me-1"></i> {% trans "Delete Supplier" %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

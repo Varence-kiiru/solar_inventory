@@ -1,0 +1,103 @@
+{% extends "base/base.html" %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+    {% if form.instance.pk %}
+        {% trans "Update Category" %}: {{ form.instance.name }}
+    {% else %}
+        {% trans "Create Category" %}
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">
+        {% if form.instance.pk %}
+            {% trans "Update Category" %}: {{ form.instance.name }}
+        {% else %}
+            {% trans "Create Category" %}
+        {% endif %}
+    </h1>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-folder me-1"></i>
+            {% if form.instance.pk %}
+                {% trans "Update Category Details" %}
+            {% else %}
+                {% trans "New Category Details" %}
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form.name|as_crispy_field }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.parent|as_crispy_field }}
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form.icon|as_crispy_field }}
+                        <small class="form-text text-muted">
+                            {% trans "Enter a Font Awesome icon class (e.g., fa-tag, fa-solar-panel)" %}
+                            <a href="https://fontawesome.com/icons" target="_blank">
+                                {% trans "Browse icons" %}
+                            </a>
+                        </small>
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.is_active|as_crispy_field }}
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-12">
+                        {{ form.description|as_crispy_field }}
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        {% if form.instance.pk %}
+                            <i class="fas fa-save me-1"></i> {% trans "Update Category" %}
+                        {% else %}
+                            <i class="fas fa-plus me-1"></i> {% trans "Create Category" %}
+                        {% endif %}
+                    </button>
+                    <a href="{% url 'inventory:category-list' %}" class="btn btn-secondary">
+                        <i class="fas fa-times me-1"></i> {% trans "Cancel" %}
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Preview icon when user enters icon class
+        $('#id_icon').on('input', function() {
+            var iconClass = $(this).val();
+            if (iconClass) {
+                $(this).parent().find('.input-group-text').html('<i class="fas ' + iconClass + '"></i>');
+            } else {
+                $(this).parent().find('.input-group-text').html('<i class="fas fa-folder"></i>');
+            }
+        });
+        
+        // Initialize icon preview
+        if ($('#id_icon').val()) {
+            $('#id_icon').parent().find('.input-group-text').html('<i class="fas ' + $('#id_icon').val() + '"></i>');
+        }
+    });
+</script>
+{% endblock %}

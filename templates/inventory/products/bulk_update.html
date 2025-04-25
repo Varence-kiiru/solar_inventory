@@ -1,0 +1,252 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}{% trans "Bulk Update Products" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'inventory:dashboard' %}">{% trans "Dashboard" %}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'inventory:product-list' %}">{% trans "Products" %}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{% trans "Bulk Update" %}</li>
+        </ol>
+    </nav>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">{% trans "Bulk Update Products" %}</h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle-fill me-2"></i>
+                {% trans "You are about to update" %} <strong>{{ products|length }}</strong> {% trans "products." %}
+            </div>
+            
+            <form method="post">
+                {% csrf_token %}
+                {% for product_id in product_ids %}
+                <input type="hidden" name="product_ids" value="{{ product_id }}">
+                {% endfor %}
+                
+                <div class="mb-4">
+                    <h6>{% trans "Select Fields to Update" %}</h6>
+                    <p class="text-muted">{% trans "Choose which fields you want to update for all selected products." %}</p>
+                    
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input field-toggle" type="checkbox" id="toggle_category" data-field="category">
+                                <label class="form-check-label" for="toggle_category">
+                                    {% trans "Category" %}
+                                </label>
+                            </div>
+                            <div class="field-container mt-2" id="field_category" style="display: none;">
+                                {{ form.category|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input field-toggle" type="checkbox" id="toggle_brand" data-field="brand">
+                                <label class="form-check-label" for="toggle_brand">
+                                    {% trans "Brand" %}
+                                </label>
+                            </div>
+                            <div class="field-container mt-2" id="field_brand" style="display: none;">
+                                {{ form.brand|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input field-toggle" type="checkbox" id="toggle_supplier" data-field="supplier">
+                                <label class="form-check-label" for="toggle_supplier">
+                                    {% trans "Supplier" %}
+                                </label>
+                            </div>
+                            <div class="field-container mt-2" id="field_supplier" style="display: none;">
+                                {{ form.supplier|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input field-toggle" type="checkbox" id="toggle_location" data-field="location">
+                                <label class="form-check-label" for="toggle_location">
+                                    {% trans "Location" %}
+                                </label>
+                            </div>
+                            <div class="field-container mt-2" id="field_location" style="display: none;">
+                                {{ form.location|as_crispy_field }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input field-toggle" type="checkbox" id="toggle_unit_price" data-field="unit_price">
+                                <label class="form-check-label" for="toggle_unit_price">
+                                    {% trans "Unit Price" %}
+                                </label>
+                            </div>
+                            <div class="field-container mt-2" id="field_unit_price" style="display: none;">
+                                {{ form.unit_price|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input field-toggle" type="checkbox" id="toggle_cost_price" data-field="cost_price">
+                                <label class="form-check-label" for="toggle_cost_price">
+                                    {% trans "Cost Price" %}
+                                </label>
+                            </div>
+                            <div class="field-container mt-2" id="field_cost_price" style="display: none;">
+                                {{ form.cost_price|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input field-toggle" type="checkbox" id="toggle_tax_rate" data-field="tax_rate">
+                                <label class="form-check-label" for="toggle_tax_rate">
+                                    {% trans "Tax Rate" %}
+                                </label>
+                            </div>
+                            <div class="field-container mt-2" id="field_tax_rate" style="display: none;">
+                                {{ form.tax_rate|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input field-toggle" type="checkbox" id="toggle_minimum_stock_level" data-field="minimum_stock_level">
+                                <label class="form-check-label" for="toggle_minimum_stock_level">
+                                    {% trans "Min Stock Level" %}
+                                </label>
+                            </div>
+                            <div class="field-container mt-2" id="field_minimum_stock_level" style="display: none;">
+                                {{ form.minimum_stock_level|as_crispy_field }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input field-toggle" type="checkbox" id="toggle_active" data-field="active">
+                                <label class="form-check-label" for="toggle_active">
+                                    {% trans "Status" %}
+                                </label>
+                            </div>
+                            <div class="field-container mt-2" id="field_active" style="display: none;">
+                                {{ form.active|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input field-toggle" type="checkbox" id="toggle_is_featured" data-field="is_featured">
+                                <label class="form-check-label" for="toggle_is_featured">
+                                    {% trans "Featured" %}
+                                </label>
+                            </div>
+                            <div class="field-container mt-2" id="field_is_featured" style="display: none;">
+                                {{ form.is_featured|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input field-toggle" type="checkbox" id="toggle_warranty_period" data-field="warranty_period">
+                                <label class="form-check-label" for="toggle_warranty_period">
+                                    {% trans "Warranty Period" %}
+                                </label>
+                            </div>
+                            <div class="field-container mt-2" id="field_warranty_period" style="display: none;">
+                                {{ form.warranty_period|as_crispy_field }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <h6>{% trans "Products to Update" %}</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>{% trans "SKU" %}</th>
+                                    <th>{% trans "Name" %}</th>
+                                    <th>{% trans "Category" %}</th>
+                                    <th>{% trans "Brand" %}</th>
+                                    <th>{% trans "Price" %}</th>
+                                    <th>{% trans "Stock" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in products %}
+                                <tr>
+                                    <td>{{ product.sku }}</td>
+                                    <td>{{ product.name }}</td>
+                                    <td>{{ product.category|default:"-" }}</td>
+                                    <td>{{ product.brand|default:"-" }}</td>
+                                    <td>Ksh. {{ product.unit_price }}</td>
+                                    <td>{{ product.quantity_in_stock }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    {% trans "This action will update all selected products with the values you've specified. This cannot be undone." %}
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'inventory:product-list' %}" class="btn btn-outline-secondary">
+                        {% trans "Cancel" %}
+                    </a>
+                    <button type="submit" class="btn btn-primary" id="updateButton" disabled>
+                        <i class="bi bi-save me-1"></i> {% trans "Update Products" %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggles = document.querySelectorAll('.field-toggle');
+        const updateButton = document.getElementById('updateButton');
+        
+        // Handle field toggles
+        toggles.forEach(toggle => {
+            toggle.addEventListener('change', function() {
+                const fieldName = this.dataset.field;
+                const fieldContainer = document.getElementById(`field_${fieldName}`);
+                
+                if (this.checked) {
+                    fieldContainer.style.display = 'block';
+                } else {
+                    fieldContainer.style.display = 'none';
+                }
+                
+                // Enable update button if at least one field is selected
+                updateButton.disabled = !document.querySelector('.field-toggle:checked');
+            });
+        });
+    });
+</script>
+{% endblock %}
+

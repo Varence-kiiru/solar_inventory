@@ -1,0 +1,82 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{% trans "Low Stock Alert" %}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-bottom: 3px solid #e74a3b;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            color: #e74a3b;
+            margin: 0;
+        }
+        .product-info {
+            margin-bottom: 20px;
+        }
+        .product-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4e73df;
+        }
+        .stock-warning {
+            color: #e74a3b;
+            font-weight: bold;
+        }
+        .details {
+            background-color: #f8f9fa;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #858796;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>{% trans "Low Stock Alert" %}</h1>
+    </div>
+    
+    <div class="product-info">
+        <div class="product-name">{{ product.name }}</div>
+        <p><strong>{% trans "SKU:" %}</strong> {{ product.sku|default:"N/A" }}</p>
+        <p class="stock-warning">
+            <strong>{% trans "Current Stock:" %}</strong> {{ product.quantity_in_stock }}<br>
+            <strong>{% trans "Reorder Level:" %}</strong> {{ product.reorder_level }}
+        </p>
+        <p>{% trans "This product has fallen below its reorder level. Please consider restocking soon." %}</p>
+    </div>
+    
+    <div class="details">
+        <h3>{% trans "Details:" %}</h3>
+        <p><strong>{% trans "Category:" %}</strong> {{ product.category.name|default:"Uncategorized" }}</p>
+        <p><strong>{% trans "Supplier:" %}</strong> {{ product.supplier.name|default:"N/A" if product.supplier else "N/A" }}</p>
+        {% if product.supplier and product.supplier.phone %}
+        <p><strong>{% trans "Supplier Phone:" %}</strong> {{ product.supplier.phone }}</p>
+        {% endif %}
+        {% if product.supplier and product.supplier.email %}
+        <p><strong>{% trans "Supplier Email:" %}</strong> {{ product.supplier.email }}</p>
+        {% endif %}
+    </div>
+    
+    <div class="footer">
+        <p>{% trans "This is an automated notification from your Solar Inventory System." %}</p>
+    </div>
+</body>
+</html>

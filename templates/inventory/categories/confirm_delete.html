@@ -1,0 +1,57 @@
+{% extends "base/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Delete Category" %}: {{ object.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">{% trans "Delete Category" %}</h1>
+    
+    <div class="card mb-4">
+        <div class="card-header bg-danger text-white">
+            <i class="fas fa-exclamation-triangle me-1"></i>
+            {% trans "Confirm Deletion" %}
+        </div>
+        <div class="card-body">
+            <div class="alert alert-warning">
+                <h5 class="alert-heading">{% trans "Warning!" %}</h5>
+                <p>{% trans "Are you sure you want to delete the category" %} <strong>{{ object.name }}</strong>?</p>
+                
+                {% if object.products.exists %}
+                    <hr>
+                    <p class="mb-0">
+                        <i class="fas fa-exclamation-circle me-1"></i>
+                        {% blocktrans with count=object.products.count %}
+                            This category has <strong>{{ count }}</strong> products associated with it. 
+                            Deleting this category will remove the category association from these products.
+                        {% endblocktrans %}
+                    </p>
+                {% endif %}
+                
+                {% if object.children.exists %}
+                    <hr>
+                    <p class="mb-0">
+                        <i class="fas fa-exclamation-circle me-1"></i>
+                        {% blocktrans with count=object.children.count %}
+                            This category has <strong>{{ count }}</strong> subcategories. 
+                            Deleting this category will make these subcategories top-level categories.
+                        {% endblocktrans %}
+                    </p>
+                {% endif %}
+            </div>
+            
+            <form method="post">
+                {% csrf_token %}
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-1"></i> {% trans "Delete Category" %}
+                    </button>
+                    <a href="{% url 'inventory:category-list' %}" class="btn btn-secondary">
+                        <i class="fas fa-times me-1"></i> {% trans "Cancel" %}
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

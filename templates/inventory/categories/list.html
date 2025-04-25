@@ -1,0 +1,156 @@
+{% extends "base/base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "Product Categories" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
+        <h1>{% trans "Product Categories" %}</h1>
+        <a href="{% url 'inventory:category-create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> {% trans "Add Category" %}
+        </a>
+    </div>
+   
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-folder me-1"></i>
+                    <span class="fw-bold">{% trans "Categories" %}</span>
+                </div>
+                <div class="d-flex align-items-center">
+                    <form class="d-flex me-2" method="get">
+                        <div class="input-group">
+                            <input type="text" name="search" class="form-control form-control-sm" 
+                                   placeholder="{% trans 'Search categories...' %}" value="{{ search }}">
+                            <button class="btn btn-outline-secondary btn-sm" type="submit">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if category_list %}
+                <div class="table-responsive">
+                    <table id="categoriesTable" class="table table-striped table-hover table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="20%">{% trans "Name" %}</th>
+                                <th width="15%">{% trans "Parent Category" %}</th>
+                                <th width="30%">{% trans "Description" %}</th>
+                                <th width="10%">{% trans "Products" %}</th>
+                                <th width="10%">{% trans "Status" %}</th>
+                                <th width="15%" class="text-center">{% trans "Actions" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for category in category_list %}
+                                <tr>
+                                    <td class="align-middle">
+                                        {% if category.icon %}
+                                            <i class="fas {{ category.icon }} me-2 text-primary"></i>
+                                        {% else %}
+                                            <i class="fas fa-tag me-2 text-secondary"></i>
+                                        {% endif %}
+                                        <span class="fw-medium">{{ category.name }}</span>
+                                    </td>
+                                    <td class="align-middle">
+                                        {% if category.parent %}
+                                            <span class="badge bg-light text-dark border">
+                                                {{ category.parent.name }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted fst-italic">{% trans "None" %}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="align-middle">{{ category.description|truncatechars:50 }}</td>
+                                    <td class="align-middle text-center">
+                                        <span class="badge bg-info text-dark">
+                                            {{ category.products.count }}
+                                        </span>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        {% if category.is_active %}
+                                            <span class="badge bg-success">{% trans "Active" %}</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">{% trans "Inactive" %}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'inventory:category-update' category.id %}" 
+                                               class="btn btn-sm btn-outline-primary" 
+                                               data-bs-toggle="tooltip" 
+                                               title="{% trans 'Edit Category' %}">
+                                                <i class="fas fa-edit"></i> <span class="d-none d-md-inline">{% trans "Edit" %}</span>
+                                            </a>
+                                            <a href="{% url 'inventory:category-delete' category.id %}" 
+                                               class="btn btn-sm btn-outline-danger" 
+                                               data-bs-toggle="tooltip" 
+                                               title="{% trans 'Delete Category' %}">
+                                                <i class="fas fa-trash"></i> <span class="d-none d-md-inline">{% trans "Delete" %}</span>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info d-flex align-items-center" role="alert">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <div>
+                        {% trans "No categories found." %}
+                        <a href="{% url 'inventory:category-create' %}" class="alert-link ms-2">
+                            <i class="fas fa-plus-circle me-1"></i>{% trans "Create your first category" %}
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+        
+        // Initialize DataTable with improved configuration
+        $('#categoriesTable').DataTable({
+            responsive: true,
+            order: [[0, 'asc']],
+            pageLength: 10,
+            lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "All"]],
+            dom: '<"row mb-3"<"col-md-6"l><"col-md-6"f>>' +
+                 '<"row"<"col-md-12"tr>>' +
+                 '<"row mt-3"<"col-md-5"i><"col-md-7"p>>',
+            language: {
+                search: "{% trans 'Search:' %}",
+                lengthMenu: "{% trans 'Show _MENU_ entries' %}",
+                info: "{% trans 'Showing _START_ to _END_ of _TOTAL_ entries' %}",
+                infoEmpty: "{% trans 'Showing 0 to 0 of 0 entries' %}",
+                infoFiltered: "{% trans '(filtered from _MAX_ total entries)' %}",
+                emptyTable: "{% trans 'No data available in table' %}",
+                zeroRecords: "{% trans 'No matching records found' %}",
+                paginate: {
+                    first: "{% trans 'First' %}",
+                    last: "{% trans 'Last' %}",
+                    next: "{% trans 'Next' %}",
+                    previous: "{% trans 'Previous' %}"
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

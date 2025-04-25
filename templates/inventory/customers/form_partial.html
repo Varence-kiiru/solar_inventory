@@ -1,0 +1,114 @@
+{% load widget_tweaks %}
+{% load i18n %}
+
+<div class="row g-3">
+    <div class="col-md-6 required-field">
+        <label for="{{ form.name.id_for_label }}" class="form-label">Full Name</label>
+        {% render_field form.name class="form-control"|add:form.name.errors|yesno:" is-invalid," placeholder="Enter customer name" %}
+        {% if form.name.errors %}
+        <div class="invalid-feedback">
+            {% for error in form.name.errors %}
+            {{ error }}
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if form.name.help_text %}
+        <small class="form-help-text">{{ form.name.help_text }}</small>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-6">
+        <label for="{{ form.tax_id.id_for_label }}" class="form-label">Tax ID</label>
+        {% render_field form.tax_id class="form-control"|add:form.tax_id.errors|yesno:" is-invalid," placeholder="Enter tax ID (optional)" %}
+        {% if form.tax_id.errors %}
+        <div class="invalid-feedback">
+            {% for error in form.tax_id.errors %}
+            {{ error }}
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if form.tax_id.help_text %}
+        <small class="form-help-text">{{ form.tax_id.help_text }}</small>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-6">
+        <label for="{{ form.email.id_for_label }}" class="form-label">{% trans "Email" %}</label>
+        {% render_field form.email class="form-control"|add:form.email.errors|yesno:" is-invalid," placeholder="Enter email address" %}
+        {% if form.email.errors %}
+        <div class="invalid-feedback">
+            {% for error in form.email.errors %}
+            {{ error }}
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if form.email.help_text %}
+        <small class="form-help-text">{{ form.email.help_text }}</small>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-6">
+        <label for="{{ form.phone.id_for_label }}" class="form-label">Phone</label>
+        {% render_field form.phone class="form-control"|add:form.phone.errors|yesno:" is-invalid," placeholder="Enter phone number" %}
+        {% if form.phone.errors %}
+        <div class="invalid-feedback">
+            {% for error in form.phone.errors %}
+            {{ error }}
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if form.phone.help_text %}
+        <small class="form-help-text">{{ form.phone.help_text }}</small>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-6">
+        <label for="{{ form.credit_limit.id_for_label }}" class="form-label">Credit Limit</label>
+        <div class="input-group">
+            <span class="input-group-text">Ksh. </span>
+            {% render_field form.credit_limit class="form-control"|add:form.credit_limit.errors|yesno:" is-invalid," placeholder="0.00" %}
+        </div>
+        {% if form.credit_limit.errors %}
+        <div class="invalid-feedback">
+            {% for error in form.credit_limit.errors %}
+            {{ error }}
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if form.credit_limit.help_text %}
+        <small class="form-help-text">{{ form.credit_limit.help_text }}</small>
+        {% else %}
+        <small class="form-help-text">Maximum credit amount for this customer (0 for no credit)</small>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-6">
+        <label for="{{ form.is_active.id_for_label }}" class="form-label">Status</label>
+        <div class="form-check form-switch">
+            {% render_field form.is_active class="form-check-input" %}
+            <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                Active customer
+            </label>
+        </div>
+        {% if form.is_active.help_text %}
+        <small class="form-help-text">{{ form.is_active.help_text }}</small>
+        {% else %}
+        <small class="form-help-text">Inactive customers won't appear in sales forms</small>
+        {% endif %}
+    </div>
+    
+    <div class="col-12">
+        <label for="{{ form.address.id_for_label }}" class="form-label">Address</label>
+        {% render_field form.address class="form-control"|add:form.address.errors|yesno:" is-invalid," rows="3" placeholder="Enter full address" %}
+        {% if form.address.errors %}
+        <div class="invalid-feedback">
+            {% for error in form.address.errors %}
+            {{ error }}
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if form.address.help_text %}
+        <small class="form-help-text">{{ form.address.help_text }}</small>
+        {% endif %}
+    </div>
+</div>

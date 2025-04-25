@@ -1,0 +1,26 @@
+<li class="nav-item">
+    <a class="nav-link {% if 'supplier' in request.path %}active{% endif %}" 
+       href="#supplierSubmenu" 
+       data-bs-toggle="collapse" 
+       aria-expanded="{% if 'supplier' in request.path %}true{% else %}false{% endif %}">
+        <i class="bi bi-shop me-2"></i>
+        <span>{% trans "Suppliers" %}</span>
+        <i class="bi bi-chevron-down ms-auto"></i>
+    </a>
+    <ul class="collapse {% if 'supplier' in request.path %}show{% endif %}" id="supplierSubmenu">
+        <li>
+            <a class="nav-link {% if request.path == '/suppliers/' %}active{% endif %}" 
+               href="{% url 'inventory:supplier-list' %}">
+                <i class="bi bi-list-ul me-2"></i>
+                <span>{% trans "All Suppliers" %}</span>
+            </a>
+        </li>
+        <li>
+            <a class="nav-link {% if '/suppliers/create/' in request.path %}active{% endif %}" 
+               href="{% url 'inventory:supplier-create' %}">
+                <i class="bi bi-plus-lg me-2"></i>
+                <span>{% trans "Add Supplier" %}</span>
+            </a>
+        </li>
+    </ul>
+</li>

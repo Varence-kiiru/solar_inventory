@@ -1,0 +1,139 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}{% trans "Create Sale" %}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4>{% trans "Create New Sale" %}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="sale-form">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form|crispy }}
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5>{% trans "Sale Items" %}</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        {{ items_formset.management_form }}
+                                        <table class="table table-bordered" id="items-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>{% trans "Product" %}</th>
+                                                    <th>{% trans "Quantity" %}</th>
+                                                    <th>{% trans "Unit Price" %}</th>
+                                                    <th>{% trans "Discount" %}</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for form in items_formset %}
+                                                <tr class="item-form">
+                                                    <td>{{ form.product|as_crispy_field }}</td>
+                                                    <td>{{ form.quantity|as_crispy_field }}</td>
+                                                    <td>{{ form.unit_price|as_crispy_field }}</td>
+                                                    <td>{{ form.discount|as_crispy_field }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> {% trans "Save Sale" %}
+                            </button>
+                            <a href="{% url 'inventory:sale-list' %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> {% trans "Cancel" %}
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Handle adding new items
+        $('#add-item').click(function() {
+            var formCount = parseInt($('#id_items-TOTAL_FORMS').val());
+            var newForm = $('.item-form:first').clone(true);
+            
+            // Update form index
+            newForm.find(':input').each(function() {
+                var name = $(this).attr('name');
+                if (name) {
+                    name = name.replace('-0-', '-' + formCount + '-');
+                    $(this).attr('name', name);
+                    $(this).attr('id', 'id_' + name);
+                }
+            });
+            
+            // Clear values
+            newForm.find('input[type=text], input[type=number], select').val('');
+            
+            // Add remove button
+            newForm.find('.remove-item').show();
+            
+            // Append to table
+            $('#items-table tbody').append(newForm);
+            
+            // Update form count
+            $('#id_items-TOTAL_FORMS').val(formCount + 1);
+        });
+        
+        // Handle removing items
+        $(document).on('click', '.remove-item', function() {
+            $(this).closest('tr').remove();
+            
+            // Update form indices
+            $('.item-form').each(function(index) {
+                $(this).find(':input').each(function() {
+                    var name = $(this).attr('name');
+                    if (name) {
+                        name = name.replace(/-\d+-/, '-' + index + '-');
+                        $(this).attr('name', name);
+                        $(this).attr('id', 'id_' + name);
+                    }
+                });
+            });
+            
+            // Update form count
+            var formCount = $('.item-form').length;
+            $('#id_items-TOTAL_FORMS').val(formCount);
+        });
+        
+        // Calculate totals when inputs change
+        $(document).on('change', '.item-form input', function() {
+            calculateItemTotal($(this).closest('tr'));
+        });
+        
+        function calculateItemTotal(row) {
+            var quantity = parseFloat(row.find('[name$="-quantity"]').val()) || 0;
+            var unitPrice = parseFloat(row.find('[name$="-unit_price"]').val()) || 0;
+            var discount = parseFloat(row.find('[name$="-discount"]').val()) || 0;
+            
+            var total = quantity * unitPrice * (1 - discount/100);
+            row.find('.item-total').text(total.toFixed(2));
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,395 @@
+{% extends 'base/base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}{% if object %}Edit{% else %}Add{% endif %} Customer{% endblock %}
+
+{% block extra_css %}
+<style>
+    .required-field label::after {
+        content: " *";
+        color: #dc3545;
+    }
+    .form-text {
+        font-size: 0.875em;
+        color: #6c757d;
+    }
+    .form-card {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        border-radius: 0.5rem;
+        border: none;
+    }
+    .form-card .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+        border-radius: 0.5rem 0.5rem 0 0;
+    }
+    .form-help-text {
+        display: block;
+        margin-top: 0.25rem;
+        font-size: 0.875em;
+        color: #6c757d;
+    }
+    .invalid-feedback {
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2">
+        <i class="bi bi-person{% if not object %}-plus{% endif %}"></i> 
+        {% if object %}Edit{% else %}Add New{% endif %} Customer
+    </h1>
+    <a href="{% url 'inventory:customer-list' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to List
+    </a>
+</div>
+
+<div class="card form-card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            {% if object %}
+            Editing {{ object.name }}
+            {% else %}
+            Customer Information
+            {% endif %}
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="post" id="customerForm" novalidate>
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                {{ error }}
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <div class="row g-3">
+                <div class="col-md-6 required-field">
+                    <label for="{{ form.name.id_for_label }}" class="form-label">Full Name</label>
+                    {% render_field form.name class="form-control"|add:form.name.errors|yesno:" is-invalid," placeholder="Enter customer name" %}
+                    {% if form.name.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.name.errors %}
+                        {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% if form.name.help_text %}
+                    <small class="form-help-text">{{ form.name.help_text }}</small>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-6">
+                    <label for="{{ form.tax_id.id_for_label }}" class="form-label">Tax ID</label>
+                    {% render_field form.tax_id class="form-control"|add:form.tax_id.errors|yesno:" is-invalid," placeholder="Enter tax ID (optional)" %}
+                    {% if form.tax_id.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.tax_id.errors %}
+                        {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% if form.tax_id.help_text %}
+                    <small class="form-help-text">{{ form.tax_id.help_text }}</small>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-6">
+                    <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
+                    {% render_field form.email class="form-control"|add:form.email.errors|yesno:" is-invalid," placeholder="Enter email address" type="email" %}
+                    {% if form.email.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.email.errors %}
+                        {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% if form.email.help_text %}
+                    <small class="form-help-text">{{ form.email.help_text }}</small>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-6">
+                    <label for="{{ form.phone.id_for_label }}" class="form-label">Phone</label>
+                    {% render_field form.phone class="form-control"|add:form.phone.errors|yesno:" is-invalid," placeholder="Enter phone number" %}
+                    {% if form.phone.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.phone.errors %}
+                        {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% if form.phone.help_text %}
+                    <small class="form-help-text">{{ form.phone.help_text }}</small>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-6">
+                    <label for="{{ form.credit_limit.id_for_label }}" class="form-label">Credit Limit</label>
+                    <div class="input-group">
+                        <span class="input-group-text">Ksh. </span>
+                        {% render_field form.credit_limit class="form-control"|add:form.credit_limit.errors|yesno:" is-invalid," placeholder="0.00" %}
+                    </div>
+                    {% if form.credit_limit.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.credit_limit.errors %}
+                        {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% if form.credit_limit.help_text %}
+                    <small class="form-help-text">{{ form.credit_limit.help_text }}</small>
+                    {% else %}
+                    <small class="form-help-text">Maximum credit amount for this customer (0 for no credit)</small>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-6">
+                    <label for="{{ form.is_active.id_for_label }}" class="form-label">Status</label>
+                    <div class="form-check form-switch">
+                        {% render_field form.is_active class="form-check-input" %}
+                        <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                            Active customer
+                        </label>
+                    </div>
+                    {% if form.is_active.help_text %}
+                    <small class="form-help-text">{{ form.is_active.help_text }}</small>
+                    {% else %}
+                    <small class="form-help-text">Inactive customers won't appear in sales forms</small>
+                    {% endif %}
+                </div>
+                
+                <div class="col-12">
+                    <label for="{{ form.address.id_for_label }}" class="form-label">Address</label>
+                    {% render_field form.address class="form-control"|add:form.address.errors|yesno:" is-invalid," rows="3" placeholder="Enter full address" %}
+                    {% if form.address.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.address.errors %}
+                        {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% if form.address.help_text %}
+                    <small class="form-help-text">{{ form.address.help_text }}</small>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="mt-4 d-flex justify-content-between">
+                <div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Save Customer
+                    </button>
+                    <a href="{% url 'inventory:customer-list' %}" class="btn btn-outline-secondary ms-2">
+                        <i class="bi bi-x-circle"></i> Cancel
+                    </a>
+                </div>
+                
+                {% if object %}
+                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                    <i class="bi bi-trash"></i> Delete
+                </button>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if object %}
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong>{{ object.name }}</strong>?</p>
+                <p class="text-danger">This action cannot be undone. All associated data will be permanently removed.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{% url 'inventory:customer-delete' object.id %}" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Focus on name field when form loads
+        document.getElementById('{{ form.name.id_for_label }}').focus();
+        
+        // Form validation
+        const form = document.getElementById('customerForm');
+        
+        form.addEventListener('submit', function(event) {
+            let isValid = true;
+            
+            // Check required fields
+            const nameField = document.getElementById('{{ form.name.id_for_label }}');
+            if (!nameField.value.trim()) {
+                nameField.classList.add('is-invalid');
+                if (!nameField.nextElementSibling || !nameField.nextElementSibling.classList.contains('invalid-feedback')) {
+                    const feedback = document.createElement('div');
+                    feedback.classList.add('invalid-feedback');
+                    feedback.textContent = 'Customer name is required';
+                    nameField.parentNode.insertBefore(feedback, nameField.nextElementSibling);
+                }
+                isValid = false;
+            } else {
+                nameField.classList.remove('is-invalid');
+            }
+            
+            // Email validation if provided
+            const emailField = document.getElementById('{{ form.email.id_for_label }}');
+            if (emailField.value.trim() && !isValidEmail(emailField.value.trim())) {
+                emailField.classList.add('is-invalid');
+                if (!emailField.nextElementSibling || !emailField.nextElementSibling.classList.contains('invalid-feedback')) {
+                    const feedback = document.createElement('div');
+                    feedback.classList.add('invalid-feedback');
+                    feedback.textContent = 'Please enter a valid email address';
+                    emailField.parentNode.insertBefore(feedback, emailField.nextElementSibling);
+                }
+                isValid = false;
+            } else {
+                emailField.classList.remove('is-invalid');
+            }
+            
+            if (!isValid) {
+                event.preventDefault();
+            }
+        });
+
+        // Helper function to validate email
+        function isValidEmail(email) {
+            const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+            return re.test(email);
+        }
+        
+        // Real-time validation
+        const inputs = form.querySelectorAll('input, textarea');
+        inputs.forEach(input => {
+            input.addEventListener('blur', function() {
+                // Name validation
+                if (this.id === '{{ form.name.id_for_label }}') {
+                    if (!this.value.trim()) {
+                        this.classList.add('is-invalid');
+                        if (!this.nextElementSibling || !this.nextElementSibling.classList.contains('invalid-feedback')) {
+                            const feedback = document.createElement('div');
+                            feedback.classList.add('invalid-feedback');
+                            feedback.textContent = 'Customer name is required';
+                            this.parentNode.insertBefore(feedback, this.nextElementSibling);
+                        }
+                    } else {
+                        this.classList.remove('is-invalid');
+                        const feedback = this.nextElementSibling;
+                        if (feedback && feedback.classList.contains('invalid-feedback')) {
+                            feedback.remove();
+                        }
+                    }
+                }
+                
+                // Email validation
+                if (this.id === '{{ form.email.id_for_label }}') {
+                    if (this.value.trim() && !isValidEmail(this.value.trim())) {
+                        this.classList.add('is-invalid');
+                        if (!this.nextElementSibling || !this.nextElementSibling.classList.contains('invalid-feedback')) {
+                            const feedback = document.createElement('div');
+                            feedback.classList.add('invalid-feedback');
+                            feedback.textContent = 'Please enter a valid email address';
+                            this.parentNode.insertBefore(feedback, this.nextElementSibling);
+                        }
+                    } else {
+                        this.classList.remove('is-invalid');
+                        const feedback = this.nextElementSibling;
+                        if (feedback && feedback.classList.contains('invalid-feedback')) {
+                            feedback.remove();
+                        }
+                    }
+                }
+                
+                // Phone validation
+                if (this.id === '{{ form.phone.id_for_label }}') {
+                    if (this.value.trim() && !/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/im.test(this.value.trim())) {
+                        this.classList.add('is-invalid');
+                        if (!this.nextElementSibling || !this.nextElementSibling.classList.contains('invalid-feedback')) {
+                            const feedback = document.createElement('div');
+                            feedback.classList.add('invalid-feedback');
+                            feedback.textContent = 'Please enter a valid phone number';
+                            this.parentNode.insertBefore(feedback, this.nextElementSibling);
+                        }
+                    } else {
+                        this.classList.remove('is-invalid');
+                        const feedback = this.nextElementSibling;
+                        if (feedback && feedback.classList.contains('invalid-feedback')) {
+                            feedback.remove();
+                        }
+                    }
+                }
+                
+                // Credit limit validation
+                if (this.id === '{{ form.credit_limit.id_for_label }}') {
+                    const value = parseFloat(this.value);
+                    if (isNaN(value) || value < 0) {
+                        this.classList.add('is-invalid');
+                        if (!this.nextElementSibling || !this.nextElementSibling.classList.contains('invalid-feedback')) {
+                            const feedback = document.createElement('div');
+                            feedback.classList.add('invalid-feedback');
+                            feedback.textContent = 'Credit limit must be a positive number or zero';
+                            this.parentNode.insertBefore(feedback, this.nextElementSibling);
+                        }
+                    } else {
+                        this.classList.remove('is-invalid');
+                        const feedback = this.nextElementSibling;
+                        if (feedback && feedback.classList.contains('invalid-feedback')) {
+                            feedback.remove();
+                        }
+                    }
+                }
+            });
+        });
+        
+        // Format phone number as user types
+        const phoneField = document.getElementById('{{ form.phone.id_for_label }}');
+        if (phoneField) {
+            phoneField.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length > 0) {
+                    if (value.length <= 3) {
+                        value = value;
+                    } else if (value.length <= 6) {
+                        value = value.slice(0, 3) + '-' + value.slice(3);
+                    } else {
+                        value = value.slice(0, 3) + '-' + value.slice(3, 6) + '-' + value.slice(6, 10);
+                    }
+                    e.target.value = value;
+                }
+            });
+        }
+        
+        // Format credit limit as currency
+        const creditLimitField = document.getElementById('{{ form.credit_limit.id_for_label }}');
+        if (creditLimitField) {
+            creditLimitField.addEventListener('blur', function(e) {
+                const value = parseFloat(e.target.value);
+                if (!isNaN(value)) {
+                    e.target.value = value.toFixed(2);
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

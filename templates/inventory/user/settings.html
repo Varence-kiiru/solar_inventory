@@ -1,0 +1,244 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}System Settings{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">System Settings</h1>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Settings Content -->
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Main Settings Form -->
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <!-- Company Information Card -->
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                        <h6 class="m-0 font-weight-bold text-primary">Company Information</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-4">
+                            <div class="col-md-3 text-center">
+                                <div class="mb-3">
+                                    {% if form.instance.company_logo %}
+                                        <img src="{{ form.instance.company_logo.url }}" alt="Company Logo" class="img-fluid mb-2" style="max-height: 100px;">
+                                    {% else %}
+                                        <div class="border rounded p-3 mb-2 text-center bg-light">
+                                            <i class="bi bi-building" style="font-size: 3rem;"></i>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="mb-3">
+                                    {{ form.company_logo }}
+                                    <label class="form-label" for="{{ form.company_logo.id_for_label }}">
+                                        {% if form.instance.company_logo %}Change logo{% else %}Choose logo{% endif %}
+                                    </label>
+                                    {% if form.company_logo.errors %}
+                                        <div class="text-danger small mt-1">{{ form.company_logo.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-9">
+                                <div class="mb-3">
+                                    <label for="{{ form.company_name.id_for_label }}" class="form-label">Company Name</label>
+                                    {{ form.company_name }}
+                                    {% if form.company_name.errors %}
+                                        <div class="text-danger small">{{ form.company_name.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.company_address.id_for_label }}" class="form-label">Company Address</label>
+                                    {{ form.company_address }}
+                                    {% if form.company_address.errors %}
+                                        <div class="text-danger small">{{ form.company_address.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.company_phone.id_for_label }}" class="form-label">Phone Number</label>
+                                            {{ form.company_phone }}
+                                            {% if form.company_phone.errors %}
+                                                <div class="text-danger small">{{ form.company_phone.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.company_email.id_for_label }}" class="form-label">Email Address</label>
+                                            {{ form.company_email }}
+                                            {% if form.company_email.errors %}
+                                                <div class="text-danger small">{{ form.company_email.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.company_website.id_for_label }}" class="form-label">Website</label>
+                                    {{ form.company_website }}
+                                    {% if form.company_website.errors %}
+                                        <div class="text-danger small">{{ form.company_website.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Financial Settings -->
+                        <h5 class="border-bottom pb-2 mb-3">Financial Settings</h5>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="{{ form.currency_symbol.id_for_label }}" class="form-label">Currency Symbol</label>
+                                    {{ form.currency_symbol }}
+                                    {% if form.currency_symbol.errors %}
+                                        <div class="text-danger small">{{ form.currency_symbol.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="{{ form.tax_rate.id_for_label }}" class="form-label">Default Tax Rate (%)</label>
+                                    {{ form.tax_rate }}
+                                    {% if form.tax_rate.errors %}
+                                        <div class="text-danger small">{{ form.tax_rate.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="{{ form.default_payment_terms.id_for_label }}" class="form-label">Default Payment Terms</label>
+                                    {{ form.default_payment_terms }}
+                                    {% if form.default_payment_terms.errors %}
+                                        <div class="text-danger small">{{ form.default_payment_terms.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Inventory Settings -->
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Inventory Settings</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="{{ form.low_stock_threshold.id_for_label }}" class="form-label">Low Stock Threshold</label>
+                            {{ form.low_stock_threshold }}
+                            <small class="form-text text-muted">Products with stock below this level will trigger low stock alerts</small>
+                            {% if form.low_stock_threshold.errors %}
+                                <div class="text-danger small">{{ form.low_stock_threshold.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            {{ form.enable_email_notifications }}
+                            <label class="form-check-label" for="{{ form.enable_email_notifications.id_for_label }}">
+                                Enable Email Notifications
+                            </label>
+                            {% if form.enable_email_notifications.errors %}
+                                <div class="text-danger small">{{ form.enable_email_notifications.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Save Button -->
+                <div class="d-grid gap-2 mb-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i> Save Settings
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- System Information Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">System Information</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6 class="font-weight-bold">Solar Inventory System</h6>
+                        <p class="mb-0 text-muted">Version 1.0.0</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6 class="font-weight-bold">Database</h6>
+                        <p class="mb-0 text-muted">SQLite</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6 class="font-weight-bold">Last Backup</h6>
+                        <p class="mb-0 text-muted">Never</p>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-secondary btn-sm" type="button">
+                            <i class="bi bi-database-fill-down me-1"></i> Backup Database
+                        </button>
+                        <button class="btn btn-info btn-sm" type="button">
+                            <i class="bi bi-arrow-repeat me-1"></i> Check for Updates
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Links Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Quick Links</h6>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <a href="{% url 'inventory:user-management' %}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-people me-2"></i> User Management
+                        </a>
+                        <a href="{% url 'inventory:user-profile' %}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-person-circle me-2"></i> Your Profile
+                        </a>
+                        <a href="{% url 'inventory:dashboard' %}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Update file input label with selected filename
+    $(document).ready(function() {
+        $('input[type="file"]').on('change', function() {
+            var fileName = $(this).val().split('\\').pop();
+            if (fileName) {
+                $(this).next('.form-label').html(fileName);
+            }
+        });
+    });
+</script>
+{% endblock %}

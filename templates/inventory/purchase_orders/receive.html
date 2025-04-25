@@ -1,0 +1,151 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load static %}
+{% load inventory_extras %}
+
+{% block title %}{% trans "Receive Purchase Order" %}: {{ object.order_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'inventory:dashboard' %}">{% trans "Dashboard" %}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'inventory:purchase-order-list' %}">{% trans "Purchase Orders" %}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'inventory:purchase-order-detail' object.id %}">{{ object.order_number }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{% trans "Receive Items" %}</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            <i class="bi bi-box-seam me-2"></i>{% trans "Receive Purchase Order" %}: {{ object.order_number }}
+        </h1>
+        <a href="{% url 'inventory:purchase-order-detail' object.id %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> {% trans "Back to Order" %}
+        </a>
+    </div>
+
+    <div class="row">
+        <!-- Order Information -->
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">{% trans "Order Information" %}</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless table-sm">
+                        <tbody>
+                            <tr>
+                                <th scope="row" class="text-muted">{% trans "Order Number" %}</th>
+                                <td class="text-end fw-bold">{{ object.order_number }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row" class="text-muted">{% trans "Supplier" %}</th>
+                                <td class="text-end">{{ object.supplier.name }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row" class="text-muted">{% trans "Order Date" %}</th>
+                                <td class="text-end">{{ object.order_date|date:"M d, Y" }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row" class="text-muted">{% trans "Expected Delivery" %}</th>
+                                <td class="text-end">
+                                    {{ object.expected_delivery_date|date:"M d, Y" }}
+                                    {% if object.is_overdue %}
+                                    <span class="badge bg-danger ms-1">{% trans "Overdue" %}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row" class="text-muted">{% trans "Status" %}</th>
+                                <td class="text-end">
+                                    {% if object.status == 'pending' %}
+                                    <span class="badge bg-warning text-dark">{% trans "Pending" %}</span>
+                                    {% elif object.status == 'partially_received' %}
+                                    <span class="badge bg-info">{% trans "Partially Received" %}</span>
+                                    {% elif object.status == 'received' %}
+                                    <span class="badge bg-success">{% trans "Received" %}</span>
+                                    {% elif object.status == 'cancelled' %}
+                                    <span class="badge bg-danger">{% trans "Cancelled" %}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Receive Form -->
+        <div class="col-md-8">
+            <form method="post">
+                {% csrf_token %}
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="card-title mb-0">{% trans "Receive Items" %}</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="id_received_date" class="form-label">{% trans "Received Date" %} <span class="text-danger">*</span></label>
+                            <input type="date" name="received_date" id="id_received_date" class="form-control" value="{{ today|date:'Y-m-d' }}" required>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>{% trans "Product" %}</th>
+                                        <th>{% trans "Ordered" %}</th>
+                                        <th>{% trans "Previously Received" %}</th>
+                                        <th>{% trans "Receive Now" %}</th>
+                                        <th>{% trans "Notes" %}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in items %}
+                                    <tr>
+                                        <td>
+                                            <div class="fw-bold">{{ item.product.name }}</div>
+                                            <small class="text-muted">{{ item.product.sku }}</small>
+                                        </td>
+                                        <td>{{ item.quantity }}</td>
+                                        <td>{{ item.received_quantity }}</td>
+                                        <td>
+                                            <input type="number" name="item_{{ item.id }}_quantity" 
+                                                   class="form-control form-control-sm" 
+                                                   min="0" 
+                                                   max="{{ item.quantity|sub:item.received_quantity }}"
+                                                   value="{{ item.quantity|sub:item.received_quantity }}">
+                                        </td>
+                                        <td>
+                                            <input type="text" name="item_{{ item.id }}_notes" class="form-control form-control-sm">
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_notes" class="form-label">{% trans "Notes" %}</label>
+                            <textarea name="notes" id="id_notes" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-white">
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'inventory:purchase-order-detail' object.id %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-lg me-1"></i> {% trans "Cancel" %}
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-box-seam me-1"></i> {% trans "Confirm Receipt" %}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

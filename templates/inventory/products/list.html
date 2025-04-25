@@ -1,0 +1,395 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "Products" %} | Solar Inventory{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+<style>
+    .product-card {
+        transition: transform 0.2s;
+        height: 100%;
+    }
+    .product-card:hover {
+        transform: translateY(-5px);
+    }
+    .product-image {
+        height: 150px;
+        object-fit: contain;
+        background-color: #f8f9fa;
+    }
+    .stock-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+    .filter-section {
+        background-color: #f8f9fa;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">{% trans "Products" %}</h1>
+        <div class="btn-group">
+            <a href="{% url 'inventory:product-create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i> {% trans "Add Product" %}
+            </a>
+            <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                <span class="visually-hidden">Toggle Dropdown</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                    <a class="dropdown-item" href="{% url 'inventory:product-export' %}?format=csv">
+                        <i class="bi bi-file-earmark-text me-2"></i> {% trans "Export to CSV" %}
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{% url 'inventory:product-export' %}?format=excel">
+                        <i class="bi bi-file-earmark-excel me-2"></i> {% trans "Export to Excel" %}
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <a class="dropdown-item" href="#importModal" data-bs-toggle="modal">
+                        <i class="bi bi-upload me-2"></i> {% trans "Import Products" %}
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="filter-section mb-4">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" name="search" class="form-control" placeholder="{% trans 'Search products...' %}" value="{{ search }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select name="category" class="form-select">
+                    <option value="">{% trans "All Categories" %}</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {% if selected_category == category.id|stringformat:"i" %}selected{% endif %}>
+                        {{ category }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="brand" class="form-select">
+                    <option value="">{% trans "All Brands" %}</option>
+                    {% for brand in brands %}
+                    <option value="{{ brand.id }}" {% if selected_brand == brand.id|stringformat:"i" %}selected{% endif %}>
+                        {{ brand.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="stock_status" class="form-select">
+                    <option value="">{% trans "All Stock" %}</option>
+                    <option value="low" {% if selected_stock_status == 'low' %}selected{% endif %}>{% trans "Low Stock" %}</option>
+                    <option value="out" {% if selected_stock_status == 'out' %}selected{% endif %}>{% trans "Out of Stock" %}</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-filter me-1"></i> {% trans "Filter" %}
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Products Display -->
+    <div class="row">
+        {% if products %}
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">{% trans "Product List" %}</h5>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-secondary active" id="tableViewBtn">
+                                    <i class="bi bi-table"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" id="gridViewBtn">
+                                    <i class="bi bi-grid-3x3-gap"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <!-- Table View -->
+                        <div id="tableView">
+                            <div class="table-responsive">
+                                <table class="table table-hover datatable">
+                                    <thead>
+                                        <tr>
+                                            <th>{% trans "Image" %}</th>
+                                            <th>{% trans "Name" %}</th>
+                                            <th>{% trans "SKU" %}</th>
+                                            <th>{% trans "Category" %}</th>
+                                            <th>{% trans "Brand" %}</th>
+                                            <th>{% trans "Price" %}</th>
+                                            <th>{% trans "Stock" %}</th>
+                                            <th>{% trans "Status" %}</th>
+                                            <th>{% trans "Actions" %}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for product in products %}
+                                        <tr>
+                                            <td class="text-center">
+                                                {% if product.image %}
+                                                <img src="{{ product.image.url }}" alt="{{ product.name }}" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: contain;">
+                                                {% else %}
+                                                <img src="{% static 'img/no-image.png' %}" alt="No Image" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: contain;">
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ product.name }}</td>
+                                            <td>{{ product.sku }}</td>
+                                            <td>{{ product.category|default:"-" }}</td>
+                                            <td>{{ product.brand.name|default:"-" }}</td>
+                                            <td>Ksh. {{ product.unit_price }}</td>
+                                            <td>
+                                                {% if product.quantity_in_stock <= 0 %}
+                                                <span class="badge bg-danger">{% trans "Out of Stock" %}</span>
+                                                {% elif product.needs_restock %}
+                                                <span class="badge bg-warning text-dark">{{ product.quantity_in_stock }} {% trans "Low" %}</span>
+                                                {% else %}
+                                                <span class="badge bg-success">{{ product.quantity_in_stock }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if product.active %}
+                                                <span class="badge bg-success">{% trans "Active" %}</span>
+                                                {% else %}
+                                                <span class="badge bg-secondary">{% trans "Inactive" %}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="{% url 'inventory:product-detail' product.id %}" class="btn btn-outline-primary" data-bs-toggle="tooltip" title="{% trans 'View Details' %}">
+                                                        <i class="bi bi-eye"></i>
+                                                    </a>
+                                                    <a href="{% url 'inventory:product-update' product.id %}" class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="{% trans 'Edit' %}">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                    <a href="{% url 'inventory:product-delete' product.id %}" class="btn btn-outline-danger" data-bs-toggle="tooltip" title="{% trans 'Delete' %}" onclick="return confirmDelete(event)">
+                                                        <i class="bi bi-trash"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- Grid View (hidden by default) -->
+                        <div id="gridView" class="d-none">
+                            <div class="row g-3 p-3">
+                                {% for product in products %}
+                                <div class="col-md-3 col-sm-6">
+                                    <div class="card product-card h-100">
+                                        {% if product.quantity_in_stock <= 0 %}
+                                        <div class="stock-badge">
+                                            <span class="badge bg-danger">{% trans "Out of Stock" %}</span>
+                                        </div>
+                                        {% elif product.needs_restock %}
+                                        <div class="stock-badge">
+                                            <span class="badge bg-warning text-dark">{% trans "Low Stock" %}</span>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        <div class="text-center p-3">
+                                            {% if product.image %}
+                                            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-image">
+                                            {% else %}
+                                            <img src="{% static 'img/no-image.png' %}" alt="No Image" class="product-image">
+                                            {% endif %}
+                                        </div>
+                                        <div class="card-body">
+                                            <h6 class="card-title">{{ product.name }}</h6>
+                                            <p class="card-text text-muted small">SKU: {{ product.sku }}</p>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="fw-bold">Ksh. {{ product.unit_price }}</span>
+                                                <span class="badge {% if product.active %}bg-success{% else %}bg-secondary{% endif %}">
+                                                    {% if product.active %}{% trans "Active" %}{% else %}{% trans "Inactive" %}{% endif %}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="card-footer bg-white">
+                                            <div class="btn-group btn-group-sm w-100">
+                                                <a href="{% url 'inventory:product-detail' product.id %}" class="btn btn-outline-primary">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                <a href="{% url 'inventory:product-update' product.id %}" class="btn btn-outline-secondary">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <a href="{% url 'inventory:product-delete' product.id %}" class="btn btn-outline-danger" onclick="return confirmDelete(event)">
+                                                    <i class="bi bi-trash"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                {% trans "Showing" %} {{ page_obj.start_index }} {% trans "to" %} {{ page_obj.end_index }} {% trans "of" %} {{ paginator.count }} {% trans "products" %}
+                            </div>
+                            {% if is_paginated %}
+                            <nav aria-label="Page navigation">
+                                <ul class="pagination mb-0">
+                                    {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page=1{% if search %}&search={{ search }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_brand %}&brand={{ selected_brand }}{% endif %}{% if selected_stock_status %}&stock_status={{ selected_stock_status }}{% endif %}" aria-label="First">
+                                            <span aria-hidden="true">««</span>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_brand %}&brand={{ selected_brand }}{% endif %}{% if selected_stock_status %}&stock_status={{ selected_stock_status }}{% endif %}" aria-label="Previous">
+                                            <span aria-hidden="true">«</span>
+                                        </a>
+                                    </li>
+                                    {% endif %}
+                                    
+                                    {% for num in paginator.page_range %}
+                                        {% if page_obj.number == num %}
+                                        <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_brand %}&brand={{ selected_brand }}{% endif %}{% if selected_stock_status %}&stock_status={{ selected_stock_status }}{% endif %}">{{ num }}</a>
+                                        </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_brand %}&brand={{ selected_brand }}{% endif %}{% if selected_stock_status %}&stock_status={{ selected_stock_status }}{% endif %}" aria-label="Next">
+                                            <span aria-hidden="true">&raquo;</span>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_brand %}&brand={{ selected_brand }}{% endif %}{% if selected_stock_status %}&stock_status={{ selected_stock_status }}{% endif %}" aria-label="Last">
+                                            <span aria-hidden="true">&raquo;&raquo;</span>
+                                        </a>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-body text-center py-5">
+                        <img src="{% static 'img/empty-box.svg' %}" alt="No products" style="max-width: 150px; opacity: 0.5;" class="mb-3">
+                        <h4>{% trans "No products found" %}</h4>
+                        <p class="text-muted">{% trans "There are no products matching your criteria." %}</p>
+                        <a href="{% url 'inventory:product-create' %}" class="btn btn-primary mt-3">
+                            <i class="bi bi-plus-circle me-1"></i> {% trans "Add Your First Product" %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importModalLabel">{% trans "Import Products" %}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'inventory:product-import' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="importFile" class="form-label">{% trans "Select File" %}</label>
+                        <input type="file" class="form-control" id="importFile" name="file" accept=".csv,.xlsx" required>
+                        <div class="form-text">{% trans "Accepted formats: CSV, Excel (.xlsx)" %}</div>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="updateExisting" name="update_existing" checked>
+                        <label class="form-check-label" for="updateExisting">
+                            {% trans "Update existing products if SKU matches" %}
+                        </label>
+                    </div>
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">{% trans "Template Format" %}</h6>
+                        <p class="mb-0">{% trans "Your file should include these columns: Name, SKU, Category, Brand, Unit Price, Cost Price, Quantity" %}</p>
+                        <a href="#" class="alert-link">{% trans "Download template" %}</a>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+                    <button type="submit" class="btn btn-primary">{% trans "Import" %}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle between table and grid view
+        const tableViewBtn = document.getElementById('tableViewBtn');
+        const gridViewBtn = document.getElementById('gridViewBtn');
+        const tableView = document.getElementById('tableView');
+        const gridView = document.getElementById('gridView');
+        
+        if (tableViewBtn && gridViewBtn && tableView && gridView) {
+            tableViewBtn.addEventListener('click', function() {
+                tableView.classList.remove('d-none');
+                gridView.classList.add('d-none');
+                tableViewBtn.classList.add('active');
+                gridViewBtn.classList.remove('active');
+                localStorage.setItem('productViewPreference', 'table');
+            });
+            
+            gridViewBtn.addEventListener('click', function() {
+                gridView.classList.remove('d-none');
+                tableView.classList.add('d-none');
+                gridViewBtn.classList.add('active');
+                tableViewBtn.classList.remove('active');
+                localStorage.setItem('productViewPreference', 'grid');
+            });
+            
+            // Load user preference if saved
+            const viewPreference = localStorage.getItem('productViewPreference');
+            if (viewPreference === 'grid') {
+                gridViewBtn.click();
+            }
+        }
+    });
+    
+    function confirmDelete(event) {
+        return confirm("{% trans 'Are you sure you want to delete this product? This action cannot be undone.' %}");
+    }
+</script>
+{% endblock %}
+

@@ -1,0 +1,1989 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block title %}{% trans "Point of Sale" %}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .product-card {
+        cursor: pointer;
+        transition: all 0.3s;
+        height: 100%;
+    }
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .cart-item {
+        border-bottom: 1px solid #eee;
+        padding: 10px 0;
+    }
+    .cart-summary {
+        position: sticky;
+        bottom: 0;
+        background: white;
+        padding: 15px;
+        border-top: 2px solid #ddd;
+    }
+    .category-nav {
+        overflow-x: auto;
+        white-space: nowrap;
+        padding: 10px 0;
+    }
+    .category-nav .btn {
+        margin-right: 5px;
+    }
+    #cart-container {
+        max-height: calc(100vh - 350px);
+        overflow-y: auto;
+    }
+    .product-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+    }
+    .product-image {
+        height: 100px;
+        object-fit: contain;
+    }
+    .payment-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+    .payment-option {
+        flex: 1;
+        min-width: 120px;
+    }
+    .badge-proforma {
+        background-color: #ff9800;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        margin-left: 5px;
+    }
+    .badge-paid {
+        background-color: #4caf50;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        margin-left: 5px;
+    }
+    .badge-unpaid {
+        background-color: #f44336;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        margin-left: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-12">
+            <h1 class="h3 mb-2">{% trans "Point of Sale" %}</h1>
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-secondary" id="new-sale-btn">
+                        <i class="fas fa-plus"></i> {% trans "New Sale" %}
+                    </button>
+                    <button type="button" class="btn btn-outline-warning" id="hold-sale-btn">
+                        <i class="fas fa-pause"></i> {% trans "Hold Sale" %}
+                    </button>
+                    <button type="button" class="btn btn-outline-info position-relative" id="held-sales-btn" data-bs-toggle="modal" data-bs-target="#heldSalesModal">
+                        <i class="fas fa-list-ul"></i> {% trans "Held Sales" %}
+                        <span id="held-sales-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none;">
+                            0
+                        </span>
+                    </button>
+                    <button type="button" class="btn btn-outline-primary" id="proforma-invoices-btn" data-bs-toggle="modal" data-bs-target="#proformaInvoicesModal">
+                        <i class="fas fa-file-invoice"></i> {% trans "Proforma Invoices" %}
+                    </button>
+                </div>
+                <div>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="barcode-input" placeholder="{% trans 'Scan barcode' %}">
+                        <button class="btn btn-outline-secondary" type="button" id="barcode-search-btn">
+                            <i class="fas fa-barcode"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Products Section -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h5 class="mb-0">{% trans "Products" %}</h5>
+                        </div>
+                        <div class="col">
+                            <input type="text" class="form-control" id="product-search" placeholder="{% trans 'Search products' %}">
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Categories Navigation -->
+                    <div class="category-nav">
+                        <button class="btn btn-sm btn-primary category-filter" data-category="">{% trans "All" %}</button>
+                        {% for category in categories %}
+                            <button class="btn btn-sm btn-outline-secondary category-filter" data-category="{{ category.id }}">
+                                {{ category.name }}
+                            </button>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Products Grid -->
+                    <div class="product-grid" id="products-container">
+                        {% for product in products %}
+                            <div class="card product-card" data-id="{{ product.id }}" data-category="{{ product.category.id }}" data-name="{{ product.name }}" data-price="{{ product.unit_price }}" data-stock="{{ product.quantity_in_stock }}">
+                                <img src="{{ product.image.url|default:'{% static "img/no-image.png" %}' }}" class="card-img-top product-image" alt="{{ product.name }}">
+                                <div class="card-body p-2">
+                                    <h6 class="card-title mb-0 text-truncate">{{ product.name }}</h6>
+                                    <p class="card-text mb-0">{{ product.unit_price|floatformat:2 }} {{ currency_symbol }}</p>
+                                    <small class="text-muted">{% trans "Stock" %}: {{ product.quantity_in_stock }}</small>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <div class="col-12 text-center py-5">
+                                <p>{% trans "No products found" %}</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cart Section -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h5 class="mb-0">{% trans "Current Sale" %}</h5>
+                        </div>
+                        <div class="col-auto">
+                            <button type="button" class="btn btn-sm btn-outline-danger" id="clear-cart-btn">
+                                <i class="fas fa-trash"></i> {% trans "Clear" %}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <!-- Customer Selection -->
+                    <div class="p-3 border-bottom">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label mb-0">{% trans "Customer" %}</label>
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
+                                <i class="fas fa-plus"></i> {% trans "Add New" %}
+                            </button>
+                        </div>
+                        <select class="form-select" id="customer-select">
+                            <option value="">{% trans "Walk-in Customer" %}</option>
+                            {% for customer in customers %}
+                                <option value="{{ customer.id }}">{{ customer.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Cart Items -->
+                    <div id="cart-container">
+                        <div class="text-center py-4" id="empty-cart-message">
+                            <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                            <p>{% trans "Cart is empty" %}</p>
+                        </div>
+                        <div id="cart-items">
+                            <!-- Cart items will be added here dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Cart Summary -->
+                    <div class="cart-summary">
+                        <div class="row mb-2">
+                            <div class="col-6">{% trans "Subtotal" %}</div>
+                            <div class="col-6 text-end" id="subtotal">0.00 {{ currency_symbol }}</div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-6">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">{% trans "Discount" %}</span>
+                                    <input type="number" class="form-control" id="discount-percentage" min="0" max="100" value="0">
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+                            <div class="col-6 text-end" id="discount-amount">0.00 {{ currency_symbol }}</div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-6">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">{% trans "Tax" %}</span>
+                                    <input type="number" class="form-control" id="tax-percentage" min="0" max="100" value="{{ default_tax_rate }}">
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+                            <div class="col-6 text-end" id="tax-amount">0.00 {{ currency_symbol }}</div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-6">{% trans "Total" %}</div>
+                            <div class="col-6 text-end fw-bold" id="total-amount">0.00 {{ currency_symbol }}</div>
+                        </div>
+
+                        <!-- Payment Options -->
+                        <div class="payment-options">
+                            <button class="btn btn-success payment-option" data-payment="cash">
+                                <i class="fas fa-money-bill-wave"></i><br>{% trans "Cash" %}
+                            </button>
+                            <button class="btn btn-info payment-option" data-payment="card">
+                                <i class="fas fa-credit-card"></i><br>{% trans "Card" %}
+                            </button>
+                            <button class="btn btn-warning payment-option" data-payment="mobile">
+                                <i class="fas fa-mobile-alt"></i><br>{% trans "Mobile" %}
+                            </button>
+                            <button class="btn btn-secondary payment-option" data-payment="credit">
+                                <i class="fas fa-handshake"></i><br>{% trans "Credit" %}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="paymentModalLabel">{% trans "Complete Payment" %}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Sale Type Indicator -->
+                <div class="alert alert-info mb-3" id="sale-type-indicator">
+                    {% trans "Regular Sale" %}
+                </div>
+                
+                <div class="mb-3">
+                    <h4 class="text-center" id="payment-total">0.00 {{ currency_symbol }}</h4>
+                </div>
+                
+                <!-- Cash Payment Fields (hidden for credit) -->
+                <div id="cash-payment-fields">
+                    <div class="mb-3">
+                        <label for="amount-tendered" class="form-label">{% trans "Amount Tendered" %}</label>
+                        <div class="input-group">
+                            <span class="input-group-text">{{ currency_symbol }}</span>
+                            <input type="number" class="form-control" id="amount-tendered" min="0" step="0.01">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="change-amount" class="form-label">{% trans "Change" %}</label>
+                        <div class="input-group">
+                            <span class="input-group-text">{{ currency_symbol }}</span>
+                            <input type="text" class="form-control" id="change-amount" readonly>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Reference Number (for card/mobile) -->
+                <div class="mb-3" id="reference-number-container" style="display: none;">
+                    <label for="reference-number" class="form-label">{% trans "Reference Number" %}</label>
+                    <input type="text" class="form-control" id="reference-number">
+                    <div class="form-text">{% trans "Required for card or mobile payments" %}</div>
+                </div>
+                
+                <!-- Credit Sale Fields -->
+                <div id="credit-options-container" style="display: none;">
+                    <!-- Customer Selection Reminder -->
+                    <div class="mb-3">
+                        <label class="form-label">{% trans "Customer" %}</label>
+                        <input type="text" class="form-control" id="credit-customer-display" readonly>
+                        <div class="form-text text-warning" id="no-customer-warning" style="display: none;">
+                            {% trans "Please select a customer before proceeding with credit sale" %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="due-date" class="form-label">{% trans "Due Date" %}</label>
+                        <input type="date" class="form-control" id="due-date">
+                        <div class="form-text">{% trans "Payment due date for this credit sale" %}</div>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-info-circle"></i> 
+                        {% trans "This will create a proforma invoice. Stock will not be deducted until payment is received and the proforma is converted to a regular invoice." %}
+                    </div>
+                </div>
+                
+                <!-- Notes Field (for all payment types) -->
+                <div class="mb-3">
+                    <label for="payment-notes" class="form-label">{% trans "Notes" %}</label>
+                    <textarea class="form-control" id="payment-notes" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+                <button type="button" class="btn btn-primary" id="complete-payment-btn">
+                    <span id="regular-sale-btn-text">{% trans "Complete Sale" %}</span>
+                    <span id="credit-sale-btn-text" style="display: none;">{% trans "Create Proforma Invoice" %}</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Customer Modal -->
+<div class="modal fade" id="addCustomerModal" tabindex="-1" aria-labelledby="addCustomerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addCustomerModalLabel">{% trans "Add New Customer" %}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="customerForm" method="post" action="{% url 'inventory:customer-create' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    {% include 'inventory/customers/form_partial.html' with form=customer_form %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+                    <button type="submit" class="btn btn-primary">{% trans "Save Customer" %}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Invoice Modal -->
+<div class="modal fade" id="invoiceModal" tabindex="-1" aria-labelledby="invoiceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="invoiceModalLabel">{% trans "Sale Invoice" %}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="invoice-content">
+                {% include 'inventory/sales/invoice_partial.html' %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Close" %}</button>
+                <button type="button" class="btn btn-primary" id="print-invoice-btn">
+                    <i class="fas fa-print"></i> {% trans "Print" %}
+                </button>
+                <button type="button" class="btn btn-success" id="email-invoice-btn">
+                    <i class="fas fa-envelope"></i> {% trans "Email" %}
+                </button>
+                <a href="#" class="btn btn-info" id="download-invoice-btn">
+                    <i class="fas fa-download"></i> {% trans "Download PDF" %}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Held Sales Modal -->
+<div class="modal fade" id="heldSalesModal" tabindex="-1" aria-labelledby="heldSalesModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="heldSalesModalLabel">{% trans "Held Sales" %}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="list-group" id="held-sales-list">
+                    <!-- Held sales will be loaded here -->
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">{% trans "Loading..." %}</span>
+                        </div>
+                        <p class="mt-3">{% trans "Loading held sales..." %}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Close" %}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Proforma Invoices Modal -->
+<div class="modal fade" id="proformaInvoicesModal" tabindex="-1" aria-labelledby="proformaInvoicesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="proformaInvoicesModalLabel">{% trans "Proforma Invoices" %}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="proforma-invoices-table">
+                        <thead>
+                            <tr>
+                                <th>{% trans "Invoice #" %}</th>
+                                <th>{% trans "Customer" %}</th>
+                                <th>{% trans "Date" %}</th>
+                                <th>{% trans "Due Date" %}</th>
+                                <th>{% trans "Amount" %}</th>
+                                <th>{% trans "Status" %}</th>
+                                <th>{% trans "Actions" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody id="proforma-invoices-list">
+                            <tr>
+                                <td colspan="7" class="text-center">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">{% trans "Loading..." %}</span>
+                                    </div>
+                                    <p class="mt-3">{% trans "Loading proforma invoices..." %}</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Close" %}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Proforma Invoice View Modal -->
+<div class="modal fade" id="proformaViewModal" tabindex="-1" aria-labelledby="proformaViewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="proformaViewModalLabel">{% trans "Proforma Invoice" %}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="proforma-invoice-content">
+                <!-- Proforma invoice content will be loaded here -->
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">{% trans "Loading..." %}</span>
+                    </div>
+                    <p class="mt-3">{% trans "Loading proforma invoice..." %}</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Close" %}</button>
+                <button type="button" class="btn btn-primary" id="print-proforma-btn">
+                    <i class="fas fa-print"></i> {% trans "Print" %}
+                </button>
+                <button type="button" class="btn btn-success" id="email-proforma-btn">
+                    <i class="fas fa-envelope"></i> {% trans "Email" %}
+                </button>
+                <button type="button" class="btn btn-warning" id="convert-to-sale-btn">
+                    <i class="fas fa-exchange-alt"></i> {% trans "Convert to Sale" %}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Convert Proforma Modal -->
+<div class="modal fade" id="convertProformaModal" tabindex="-1" aria-labelledby="convertProformaModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="convertProformaModalLabel">{% trans "Convert to Sale" %}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>{% trans "Select payment method to complete this sale:" %}</p>
+                
+                <div class="mb-3">
+                    <label for="convert-payment-method" class="form-label">{% trans "Payment Method" %}</label>
+                    <select class="form-select" id="convert-payment-method">
+                        <option value="cash">{% trans "Cash" %}</option>
+                        <option value="card">{% trans "Card" %}</option>
+                        <option value="mobile">{% trans "Mobile Payment" %}</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3" id="convert-reference-container" style="display: none;">
+                    <label for="convert-reference" class="form-label">{% trans "Reference Number" %}</label>
+                    <input type="text" class="form-control" id="convert-reference">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="convert-amount-tendered" class="form-label">{% trans "Amount Tendered" %}</label>
+                    <div class="input-group">
+                        <span class="input-group-text">{{ currency_symbol }}</span>
+                        <input type="number" class="form-control" id="convert-amount-tendered" min="0" step="0.01">
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="convert-change" class="form-label">{% trans "Change" %}</label>
+                    <div class="input-group">
+                        <span class="input-group-text">{{ currency_symbol }}</span>
+                        <input type="text" class="form-control" id="convert-change" readonly>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="convert-notes" class="form-label">{% trans "Notes" %}</label>
+                    <textarea class="form-control" id="convert-notes" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+                <button type="button" class="btn btn-primary" id="complete-conversion-btn">{% trans "Complete Sale" %}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden form for sale submission -->
+<form id="sale-form" method="post" action="{% url 'inventory:sale-create' %}" style="display: none;">
+    {% csrf_token %}
+    <input type="hidden" name="customer" id="form-customer">
+    <input type="hidden" name="payment_method" id="form-payment-method">
+    <input type="hidden" name="paid" id="form-paid" value="1">
+    <input type="hidden" name="notes" id="form-notes">
+    <input type="hidden" name="discount_percentage" id="form-discount-percentage">
+    <input type="hidden" name="tax_percentage" id="form-tax-percentage">
+    <input type="hidden" name="shipping_cost" id="form-shipping-cost" value="0">
+    <input type="hidden" name="due_date" id="form-due-date">
+    <input type="hidden" name="is_proforma" id="form-is-proforma" value="0">
+   
+    <!-- Sale items will be added dynamically -->
+    <div id="form-items-container"></div>
+   
+    <input type="hidden" name="reference_number" id="form-reference-number">
+    <input type="hidden" name="amount_tendered" id="form-amount-tendered">
+    <input type="hidden" name="change_amount" id="form-change-amount">
+</form>
+
+<!-- Hidden form for proforma conversion -->
+<form id="convert-proforma-form" method="post" action="{% url 'inventory:proforma-convert' %}" style="display: none;">
+    {% csrf_token %}
+    <input type="hidden" name="proforma_id" id="form-proforma-id">
+    <input type="hidden" name="payment_method" id="form-convert-payment-method">
+    <input type="hidden" name="reference_number" id="form-convert-reference">
+    <input type="hidden" name="amount_tendered" id="form-convert-amount-tendered">
+    <input type="hidden" name="change_amount" id="form-convert-change">
+    <input type="hidden" name="notes" id="form-convert-notes">
+</form>
+
+<!-- Alert container for notifications -->
+<div id="alert-container" class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050;"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Global variables
+    let cart = [];
+    let heldSales = [];
+    const currencySymbol = '{{ currency_symbol|default:"$" }}';
+    let currentProformaId = null;
+    let currentProformaAmount = 0;
+
+    // Helper functions
+    function getCsrfToken() {
+        return document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+    }
+
+    function showAlert(type, message) {
+        const alertContainer = document.getElementById('alert-container');
+        if (!alertContainer) return;
+
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} alert-dismissible fade show`;
+        alert.innerHTML = `
+            <strong>${message}</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+    
+        alertContainer.appendChild(alert);
+    
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => {
+            alert.classList.remove('show');
+            setTimeout(() => {
+                alert.remove();
+            }, 150);
+        }, 5000);
+    }
+
+    // Helper function for translation (if gettext is not defined)
+    if (typeof gettext !== 'function') {
+        window.gettext = function(text) {
+            return text;
+        };
+    }
+
+    // Cart management functions
+    function updateCartDisplay() {
+        if (cart.length === 0) {
+            $('#empty-cart-message').show();
+            $('#cart-items').empty();
+        } else {
+            $('#empty-cart-message').hide();
+            
+            let cartHtml = '';
+            
+            cart.forEach((item, index) => {
+                const itemTotal = item.price * item.quantity;
+
+                cartHtml += `
+                    <div class="cart-item p-2">
+                        <div class="d-flex justify-content-between mb-1">
+                            <div class="fw-bold">${item.name}</div>
+                            <button type="button" class="btn btn-sm btn-link text-danger remove-cart-item" data-index="${index}">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="input-group input-group-sm" style="width: 120px;">
+                                <button class="btn btn-outline-secondary decrement-quantity" type="button" data-index="${index}">-</button>
+                                <input type="number" class="form-control text-center cart-item-quantity" value="${item.quantity}" min="1" max="${item.stock}" data-index="${index}">
+                                <button class="btn btn-outline-secondary increment-quantity" type="button" data-index="${index}">+</button>
+                            </div>
+                            <div>
+                                <div class="text-muted small">${formatCurrency(item.price)} × ${item.quantity}</div>
+                                <div class="text-end">${formatCurrency(itemTotal)}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            $('#cart-items').html(cartHtml);
+        }
+        
+        // Update totals
+        updateTotals();
+        updateCheckoutButtonState();
+
+        // Enable/disable buttons based on cart state
+        $('.payment-option').prop('disabled', cart.length === 0);
+    }
+
+    function updateTotals() {
+        const subtotal = calculateSubtotal();
+        const discountPercentage = parseFloat($('#discount-percentage').val()) || 0;
+        const taxPercentage = parseFloat($('#tax-percentage').val()) || 0;
+        
+        const discountAmount = (subtotal * discountPercentage) / 100;
+        const taxableAmount = subtotal - discountAmount;
+        const taxAmount = (taxableAmount * taxPercentage) / 100;
+        const total = taxableAmount + taxAmount;
+        
+        $('#subtotal').text(formatCurrency(subtotal));
+        $('#discount-amount').text(formatCurrency(discountAmount));
+        $('#tax-amount').text(formatCurrency(taxAmount));
+        $('#total-amount').text(formatCurrency(total));
+    }
+
+    function calculateSubtotal() {
+        return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    }
+
+    function calculateTotal() {
+        const subtotal = calculateSubtotal();
+        const discountPercentage = parseFloat($('#discount-percentage').val()) || 0;
+        const taxPercentage = parseFloat($('#tax-percentage').val()) || 0;
+        
+        const discountAmount = (subtotal * discountPercentage) / 100;
+        const taxableAmount = subtotal - discountAmount;
+        const taxAmount = (taxableAmount * taxPercentage) / 100;
+        
+        return taxableAmount + taxAmount;
+    }
+
+    function formatCurrency(amount) {
+        return `${currencySymbol}${amount.toFixed(2)}`;
+    }
+
+    function calculateChange() {
+        const totalAmount = calculateTotal();
+        const amountTendered = parseFloat($('#amount-tendered').val()) || 0;
+        const change = Math.max(0, amountTendered - totalAmount);
+        
+        $('#change-amount').val(change.toFixed(2));
+    }
+
+    function updateCheckoutButtonState() {
+        const checkoutBtn = $('#checkout-btn');
+        const holdBtn = $('#hold-sale-btn');
+        const proformaBtn = $('#create-proforma-btn');
+        
+        if (cart.length > 0) {
+            checkoutBtn.prop('disabled', false);
+            holdBtn.prop('disabled', false);
+            proformaBtn.prop('disabled', false);
+        } else {
+            checkoutBtn.prop('disabled', true);
+            holdBtn.prop('disabled', true);
+            proformaBtn.prop('disabled', true);
+        }
+    }
+
+    function addToCart(id, name, price, stock) {
+        // Check if product already in cart
+        const existingItemIndex = cart.findIndex(item => item.id === id);
+        
+        if (existingItemIndex !== -1) {
+            // Product already in cart, increment quantity
+            if (cart[existingItemIndex].quantity < stock) {
+                cart[existingItemIndex].quantity += 1;
+            } else {
+                showAlert('warning', gettext('Not enough stock available'));
+                return;
+            }
+        } else {
+            // Add new product to cart
+            cart.push({
+                id: id,
+                name: name,
+                price: price,
+                quantity: 1,
+                stock: stock
+            });
+        }
+        
+        updateCartDisplay();
+    }
+
+    function removeFromCart(index) {
+        cart.splice(index, 1);
+        updateCartDisplay();
+        showAlert('info', gettext('Item removed from cart'));
+    }
+
+    function clearCart() {
+        cart = [];
+        updateCartDisplay();
+        showAlert('info', gettext('Cart cleared'));
+    }
+
+    // Product filtering functions
+    function filterProducts(searchTerm) {
+        $('.product-card').each(function() {
+            const productName = $(this).data('name').toLowerCase();
+            
+            if (productName.includes(searchTerm)) {
+                $(this).show();
+            } else {
+                $(this).hide();
+            }
+        });
+    }
+
+    function filterProductsByCategory(categoryId) {
+        if (!categoryId) {
+            $('.product-card').show();
+        } else {
+            $('.product-card').each(function() {
+                if ($(this).data('category') == categoryId) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            });
+        }
+    }
+
+    function searchBarcode(barcode) {
+        if (!barcode) return;
+        
+        $.ajax({
+            url: '/inventory/product/search/barcode/',
+            type: 'GET',
+            data: { 'barcode': barcode },
+            success: function(response) {
+                if (response.success) {
+                    const product = response.product;
+                    addToCart(product.id, product.name, product.unit_price, product.quantity_in_stock);
+                } else {
+                    showAlert('warning', gettext('Product not found'));
+                }
+            },
+            error: function() {
+                showAlert('danger', gettext('Error searching for product'));
+            }
+        });
+    }
+
+    // Payment options
+    $('.payment-option').on('click', function() {
+        if (cart.length === 0) {
+            showAlert('warning', gettext('Cart is empty'));
+            return;
+        }
+        
+        const paymentMethod = $(this).data('payment');
+        $('#form-payment-method').val(paymentMethod);
+        
+        $('#paymentModalLabel').text(gettext('Complete Payment'));
+        $('#sale-type-indicator').removeClass('alert-warning alert-info').addClass('alert-info');
+        $('#sale-type-indicator').text(gettext('Regular Sale'));
+        $('#cash-payment-fields').show();
+        $('#reference-number-container').hide();
+        $('#credit-options-container').hide();
+        $('#regular-sale-btn-text').show();
+        $('#credit-sale-btn-text').hide();
+        
+        if (paymentMethod === 'credit') {
+            const customerId = $('#customer-select').val();
+            const customerName = $('#customer-select option:selected').text();
+            
+            if (!customerId) {
+                showAlert('warning', gettext('Please select a customer for credit sale'));
+                return;
+            }
+            
+            $('#paymentModalLabel').text(gettext('Create Proforma Invoice'));
+            $('#sale-type-indicator').removeClass('alert-info').addClass('alert-warning');
+            $('#sale-type-indicator').text(gettext('Credit Sale - Proforma Invoice'));
+            $('#cash-payment-fields').hide();
+            $('#credit-options-container').show();
+            $('#credit-customer-display').val(customerName);
+            $('#regular-sale-btn-text').hide();
+            $('#credit-sale-btn-text').show();
+            
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            $('#due-date').attr('min', tomorrow.toISOString().split('T')[0]);
+            
+            if (!$('#due-date').val()) {
+                const thirtyDays = new Date();
+                thirtyDays.setDate(thirtyDays.getDate() + 30);
+                $('#due-date').val(thirtyDays.toISOString().split('T')[0]);
+            }
+            
+            $('#amount-tendered').val('0.00');
+            $('#change-amount').val('0.00');
+            $('#form-paid').val('');
+            $('#form-is-proforma').val('1');
+        } else {
+            const totalAmount = calculateTotal();
+            $('#amount-tendered').val(totalAmount.toFixed(2));
+            $('#change-amount').val('0.00');
+            $('#form-paid').val('1');
+            $('#form-is-proforma').val('0');
+            
+            if (paymentMethod === 'card' || paymentMethod === 'mobile') {
+                $('#reference-number-container').show();
+            } else {
+                calculateChange();
+            }
+        }
+        
+        $('#payment-total').text(formatCurrency(calculateTotal()));
+        $('#paymentModal').modal('show');
+        
+        setTimeout(() => {
+            if (paymentMethod === 'credit') {
+                $('#due-date').focus();
+            } else if (paymentMethod === 'card' || paymentMethod === 'mobile') {
+                $('#reference-number').focus();
+            } else {
+                $('#amount-tendered').focus().select();
+            }
+        }, 500);
+    });
+
+    // Calculate change
+    $('#amount-tendered').on('input', function() {
+        calculateChange();
+    });
+
+    // Complete payment or create proforma
+    $('#complete-payment-btn').on('click', function() {
+        if (cart.length === 0) {
+            showAlert('warning', gettext('Cart is empty'));
+            return;
+        }
+
+        const paymentMethod = $('#form-payment-method').val();
+        const totalAmount = calculateTotal();
+
+        // Validate based on payment method
+        if (paymentMethod === 'credit') {
+            // For credit sales, validate customer and due date
+            if (!$('#customer-select').val()) {
+                showAlert('warning', gettext('Please select a customer for credit sale'));
+                return;
+            }
+
+            if (!$('#due-date').val()) {
+                showAlert('warning', gettext('Please set a due date for credit sale'));
+                return;
+            }
+        } else if (paymentMethod === 'cash') {
+            // For cash sales, validate amount tendered
+            const amountTendered = parseFloat($('#amount-tendered').val()) || 0;
+            
+            if (amountTendered < totalAmount) {
+                showAlert('warning', gettext('Amount tendered is less than total amount'));
+                return;
+            }
+        } else if (paymentMethod === 'card' || paymentMethod === 'mobile') {
+            // For card/mobile payments, validate reference number
+            if (!$('#reference-number').val()) {
+                showAlert('warning', gettext('Please enter a reference number'));
+                return;
+            }
+        }
+        
+        // Prepare form data
+        $('#form-customer').val($('#customer-select').val());
+        $('#form-notes').val($('#payment-notes').val());
+        $('#form-discount-percentage').val($('#discount-percentage').val());
+        $('#form-tax-percentage').val($('#tax-percentage').val());
+        $('#form-due-date').val($('#due-date').val());
+        $('#form-reference-number').val($('#reference-number').val());
+        $('#form-amount-tendered').val($('#amount-tendered').val());
+        $('#form-change-amount').val($('#change-amount').val());
+
+        // Clear previous items
+        $('#form-items-container').empty();
+        
+        // Add items to form
+        cart.forEach((item, index) => {
+            const productInput = $('<input>').attr({
+                type: 'hidden',
+                name: `items-${index}-product`,
+                value: item.id
+            });
+            
+            const quantityInput = $('<input>').attr({
+                type: 'hidden',
+                name: `items-${index}-quantity`,
+                value: item.quantity
+            });
+
+            const priceInput = $('<input>').attr({
+                type: 'hidden',
+                name: `items-${index}-unit_price`,
+                value: item.price
+            });
+            
+            const discountInput = $('<input>').attr({
+                type: 'hidden',
+                name: `items-${index}-discount`,
+                value: 0
+            });
+            
+            $('#form-items-container').append(productInput, quantityInput, priceInput, discountInput);
+        });
+
+        // Add management form for formset
+        const managementTotalForms = $('<input>').attr({
+            type: 'hidden',
+            name: 'items-TOTAL_FORMS',
+            value: cart.length
+        });
+
+        const managementInitialForms = $('<input>').attr({
+            type: 'hidden',
+            name: 'items-INITIAL_FORMS',
+            value: 0
+        });
+
+        const managementMinForms = $('<input>').attr({
+            type: 'hidden',
+            name: 'items-MIN_NUM_FORMS',
+            value: 0
+        });
+
+        const managementMaxForms = $('<input>').attr({
+            type: 'hidden',
+            name: 'items-MAX_NUM_FORMS',
+            value: 1000
+        });
+
+        $('#form-items-container').append(managementTotalForms, managementInitialForms, managementMinForms, managementMaxForms);
+
+        // FIXED: Ensure paid field is correctly set for proforma invoices
+        if (paymentMethod === 'credit') {
+            // For credit sales, explicitly add a hidden field for paid=false
+            const paidInput = $('<input>').attr({
+                type: 'hidden',
+                name: 'paid',
+                value: ''  // Empty string for False in Django
+            });
+            $('#form-items-container').append(paidInput);
+        }
+        
+        // Submit form with AJAX to handle errors gracefully
+        $.ajax({
+            url: $('#sale-form').attr('action'),
+            type: 'POST',
+            data: $('#sale-form').serialize(),
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            success: function(response) {
+                console.log('Response:', response);
+
+                if (response.success) {
+                    // Clear cart
+                    cart = [];
+                    updateCartDisplay();
+
+                    // Close payment modal - ensure it's properly dismissed
+                    const paymentModal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
+                    if (paymentModal) {
+                        paymentModal.hide();
+                    } else {
+                        // Fallback if the Bootstrap instance method doesn't work
+                        $('#paymentModal').modal('hide');
+                    }
+
+                    // Show success message
+                    if (paymentMethod === 'credit') {
+                        showAlert('success', gettext('Proforma invoice created successfully'));
+                    } else {
+                        showAlert('success', gettext('Sale completed successfully'));
+                    }
+                    
+                    // Redirect to invoice/proforma detail page after a short delay
+                    // to ensure modal is fully closed and alert is visible
+                    setTimeout(function() {
+                        if (response.redirect_url) {
+                            console.log('Redirecting to:', response.redirect_url); // Debug
+                            window.location.href = response.redirect_url;
+                        } else {
+                            console.error('No redirect URL provided in response');
+                        }
+                    }, 800);
+                } else {
+                    // Show detailed error message
+                    console.error('Error response:', response); // Debug
+
+                    if (response.form_errors) {
+                        try {
+                            const errors = JSON.parse(response.form_errors);
+                            let errorMessage = '';
+
+                            // Extract error messages
+                            for (const field in errors) {
+                                if (errors.hasOwnProperty(field)) {
+                                    if (Array.isArray(errors[field])) {
+                                        errors[field].forEach(error => {
+                                            errorMessage += `${error}<br>`;
+                                        });
+                                    } else {
+                                        errorMessage += `${errors[field]}<br>`;
+                                    }
+                                }
+                            }
+
+                            showAlert('danger', errorMessage || response.error || gettext('Error processing sale'));
+                        } catch (e) {
+                            console.error('Error parsing form errors:', e);
+                            showAlert('danger', response.error || gettext('Error processing sale'));
+                        }
+                    } else {
+                        showAlert('danger', response.error || gettext('Error processing sale'));
+                    }
+                }
+            },
+            error: function(xhr, status, error) {
+                // Log detailed error information
+                console.error('AJAX Error:', status, error);
+                console.error('Response:', xhr.responseText);
+                
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    showAlert('danger', response.error || gettext('Error processing sale'));
+                } catch (e) {
+                    showAlert('danger', gettext('Error processing sale'));
+                }
+            }
+        })
+    });
+    // New sale
+    $('#new-sale-btn').on('click', function() {
+        if (cart.length > 0) {
+            if (confirm(gettext('Are you sure you want to start a new sale? Current cart will be cleared.'))) {
+                cart = [];
+                updateCartDisplay();
+                $('#customer-select').val('');
+                $('#discount-percentage').val(0);
+                $('#tax-percentage').val($('#tax-percentage').data('default-rate') || 0);
+            }
+        }
+    });
+    
+    // Hold sale
+    $('#hold-sale-btn').on('click', function() {
+        if (cart.length === 0) {
+            showAlert('warning', gettext('Cart is empty'));
+            return;
+        }
+        
+        const holdName = prompt(gettext('Enter a name for this held sale (optional)'));
+        
+        if (holdName !== null) { // Only cancel if user clicks Cancel, empty string is OK
+            // Use the server API instead of localStorage
+            const data = {
+                name: holdName || gettext('Unnamed Sale'),
+                customer_id: $('#customer-select').val(),
+                discount: $('#discount-percentage').val(),
+                tax: $('#tax-percentage').val(),
+                items: cart.map(item => ({
+                    product_id: item.id,
+                    quantity: item.quantity,
+                    unit_price: item.price,
+                    discount: 0
+                }))
+            };
+            
+            // Use proper error handling for fetch
+            fetch('/inventory/api/sales/hold/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        console.error('Server error response:', text);
+                        throw new Error('Server returned an error');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    showAlert('success', gettext('Sale Held'));
+
+                    // Clear cart
+                    cart = [];
+                    updateCartDisplay();
+                    $('#customer-select').val('');
+                    $('#discount-percentage').val(0);
+                    $('#tax-percentage').val($('#tax-percentage').data('default-rate') || 0);
+                    
+                    // Update held sales count badge
+                    updateHeldSalesCount(1);
+                } else {
+                    showAlert('danger', data.error || gettext('Failed to hold sale'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('danger', error.message || gettext('An error occurred while holding the sale'));
+            });
+        }
+    });
+    
+    // Held sales functions
+    function loadHeldSalesCount() {
+        fetch('/inventory/api/sales/held/')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    const badge = document.getElementById('held-sales-count');
+                    if (badge) {
+                        badge.textContent = data.count;
+                        badge.style.display = data.count > 0 ? 'inline-block' : 'none';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching held sales count:', error);
+            });
+    }
+    
+    function updateHeldSalesCount(increment = 0) {
+        const badge = document.getElementById('held-sales-count');
+        if (badge) {
+            let count = parseInt(badge.textContent || '0');
+            count += increment;
+            badge.textContent = count;
+            badge.style.display = count > 0 ? 'inline-block' : 'none';
+        }
+    }
+    
+    function displayHeldSales() {
+        const heldSalesList = $('#held-sales-list');
+        
+        // Show loading spinner
+        heldSalesList.html(`
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">${gettext("Loading...")}</span>
+                </div>
+                <p class="mt-3">${gettext("Loading held sales...")}</p>
+            </div>
+        `);
+        
+        // Fetch held sales from the server
+        fetch('/inventory/api/sales/held/')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    if (data.html) {
+                        // Update the held sales list with the HTML from the server
+                        heldSalesList.html(data.html);
+                    } else if (data.sales && data.sales.length > 0) {
+                        // Render sales list manually if HTML isn't provided
+                        let salesHtml = '';
+                        data.sales.forEach(sale => {
+                            salesHtml += `
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">${sale.name || gettext('Unnamed Sale')}</h6>
+                                            <small>${sale.date} - ${sale.items_count} ${gettext('items')}</small>
+                                        </div>
+                                        <div>
+                                            <button class="btn btn-sm btn-primary load-held-sale" data-sale-id="${sale.id}">
+                                                ${gettext('Load')}
+                                            </button>
+                                            <button class="btn btn-sm btn-danger delete-held-sale" data-sale-id="${sale.id}">
+                                                ${gettext('Delete')}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        heldSalesList.html(salesHtml);
+                    } else {
+                        // No held sales
+                        heldSalesList.html(`
+                            <div class="text-center py-4">
+                                <p class="text-muted">
+                                    ${gettext('No held sales found')}
+                                </p>
+                            </div>
+                        `);
+                    }
+                    
+                    // Set up event handlers for the new elements
+                    setupHeldSalesEventHandlers();
+                } else {
+                    heldSalesList.html(`
+                        <div class="text-center py-4">
+                            <i class="fas fa-exclamation-circle text-warning"></i>
+                            <p class="mt-3">${gettext("Error loading held sales")}</p>
+                        </div>
+                    `);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching held sales:', error);
+                heldSalesList.html(`
+                    <div class="text-center py-4">
+                        <i class="fas fa-exclamation-circle text-danger"></i>
+                        <p class="mt-3">${gettext("Failed to load held sales")}</p>
+                        <small class="text-muted">${error.message}</small>
+                    </div>
+                `);
+            });
+    }
+
+    function setupHeldSalesEventHandlers() {
+        // Load held sale
+        $('.load-held-sale').on('click', function(e) {
+            e.preventDefault();
+            const saleId = $(this).data('sale-id');
+
+            if (cart.length > 0) {
+                if (!confirm(gettext('Current cart will be replaced. Continue?'))) {
+                    return;
+                }
+            }
+            
+            // Show loading
+            showAlert('info', gettext('Loading held sale...'));
+            
+            // Fetch the held sale from the server
+            fetch(`/inventory/api/sales/held/${saleId}/`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        // Clear current cart
+                        cart = [];
+                        
+                        // Load items into cart
+                        data.sale.items.forEach(item => {
+                            cart.push({
+                                id: item.product_id,
+                                name: item.product_name,
+                                price: parseFloat(item.unit_price),
+                                quantity: parseInt(item.quantity),
+                                stock: parseInt(item.stock) || 999 // Use stock info if available, otherwise assume it's enough
+                            });
+                        });
+                        
+                        // Set customer if available
+                        if (data.sale.customer_id) {
+                            $('#customer-select').val(data.sale.customer_id);
+                        } else {
+                            $('#customer-select').val('');
+                        }
+                        
+                        // Set discount and tax
+                        $('#discount-percentage').val(data.sale.discount || 0);
+                        $('#tax-percentage').val(data.sale.tax || $('#tax-percentage').data('default-rate') || 0);
+                        
+                        // Update cart display
+                        updateCartDisplay();
+                        
+                        // Close modal
+                        $('#heldSalesModal').modal('hide');
+                        
+                        // Show success message
+                        showAlert('success', gettext('Held sale loaded successfully'));
+                        
+                        // Delete the held sale after loading
+                        deleteHeldSale(saleId);
+                    } else {
+                        showAlert('danger', data.error || gettext('Failed to load held sale'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading held sale:', error);
+                    showAlert('danger', gettext('Error loading held sale'));
+                });
+        });
+        
+        // Delete held sale
+        $('.delete-held-sale').on('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation(); // Prevent triggering the parent link
+            
+            const saleId = $(this).data('sale-id');
+            
+            if (confirm(gettext('Are you sure you want to delete this held sale?'))) {
+                deleteHeldSale(saleId);
+            }
+        });
+    }
+    
+    function deleteHeldSale(saleId) {
+        // Send delete request to server
+        fetch(`/inventory/api/sales/held/${saleId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCsrfToken(),
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Remove the item from the list
+                $(`.delete-held-sale[data-sale-id="${saleId}"]`).closest('.list-group-item').remove();
+                
+                // If no items left, show empty message
+                if ($('#held-sales-list .list-group-item').length === 0) {
+                    $('#held-sales-list').html(`
+                        <div class="text-center py-4">
+                            <p class="text-muted">
+                                ${gettext("No held sales found")}
+                            </p>
+                        </div>
+                    `);
+                }
+                
+                // Update held sales count
+                loadHeldSalesCount();
+                
+                showAlert('success', gettext('Held sale deleted successfully'));
+            } else {
+                showAlert('danger', data.error || gettext('Failed to delete held sale'));
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting held sale:', error);
+            showAlert('danger', gettext('Error deleting held sale'));
+        });
+    }
+    
+    // Proforma invoice functions
+    function loadProformaInvoices() {
+        const proformaList = $('#proforma-invoices-list');
+        
+        // Show loading spinner
+        proformaList.html(`
+            <tr>
+                <td colspan="7" class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">${gettext("Loading...")}</span>
+                    </div>
+                    <p class="mt-3">${gettext("Loading proforma invoices...")}</p>
+                </td>
+            </tr>
+        `);
+        
+        // Fetch proforma invoices
+        $.ajax({
+            url: '/inventory/proforma/list/',
+            type: 'GET',
+            success: function(data) {
+                if (data.success && data.proformas && data.proformas.length > 0) {
+                    let proformasHtml = '';
+                    
+                    data.proformas.forEach(invoice => {
+                        const statusClass = invoice.status === 'pending' ? 'warning' : 
+                                           invoice.status === 'converted' ? 'success' : 'secondary';
+                        
+                        proformasHtml += `
+                            <tr>
+                                <td>${invoice.invoice_number}</td>
+                                <td>${invoice.customer_name}</td>
+                                <td>${invoice.date}</td>
+                                <td>${invoice.due_date}</td>
+                                <td>${currencySymbol}${invoice.total}</td>
+                                <td><span class="badge bg-${statusClass}">${invoice.status}</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary view-proforma-btn" data-id="${invoice.id}">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    ${invoice.status === 'pending' ? `
+                                    <button class="btn btn-sm btn-outline-warning convert-proforma-btn" data-id="${invoice.id}" data-amount="${invoice.total}">
+                                        <i class="fas fa-exchange-alt"></i>
+                                    </button>` : ''}
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    
+                    proformaList.html(proformasHtml);
+                    
+                    // Set up event handlers
+                    $('.view-proforma-btn').on('click', function() {
+                        const id = $(this).data('id');
+                        viewProformaInvoice(id);
+                    });
+                    
+                    $('.convert-proforma-btn').on('click', function() {
+                        const id = $(this).data('id');
+                        const amount = $(this).data('amount');
+                        showConvertProformaModal(id, amount);
+                    });
+                } else {
+                    proformaList.html(`
+                        <tr>
+                            <td colspan="7" class="text-center">
+                                <p class="text-muted my-3">
+                                    ${gettext('No proforma invoices found')}
+                                </p>
+                            </td>
+                        </tr>
+                    `);
+                }
+            },
+            error: function() {
+                proformaList.html(`
+                    <tr>
+                        <td colspan="7" class="text-center">
+                            <p class="text-danger my-3">
+                                ${gettext('Error loading proforma invoices')}
+                            </p>
+                        </td>
+                    </tr>
+                `);
+            }
+        });
+    }
+    
+    function viewProformaInvoice(id) {
+        $.ajax({
+            url: '/inventory/proforma/detail/',
+            type: 'GET',
+            data: { 'id': id },
+            success: function(data) {
+                if (data.success && data.html) {
+                    $('#proforma-invoice-content').html(data.html);
+                    
+                    // Store the current proforma ID for later use
+                    currentProformaId = id;
+                    
+                    // Show the modal
+                    const proformaViewModal = new bootstrap.Modal(document.getElementById('proformaViewModal'));
+                    proformaViewModal.show();
+                } else {
+                    showAlert('danger', data.error || gettext('Error loading proforma invoice'));
+                }
+            },
+            error: function() {
+                showAlert('danger', gettext('Error loading proforma invoice'));
+            }
+        });
+    }
+    
+    function showConvertProformaModal(id, amount) {
+        currentProformaId = id;
+        currentProformaAmount = parseFloat(amount);
+        
+        // Reset form
+        $('#convert-payment-method').val('cash');
+        $('#convert-reference').val('');
+        $('#convert-amount-tendered').val(amount);
+        $('#convert-change').val('0.00');
+        $('#convert-notes').val('');
+        
+        // Update reference field visibility
+        $('#convert-reference-container').hide();
+        
+        // Show modal
+        const convertModal = new bootstrap.Modal(document.getElementById('convertProformaModal'));
+        convertModal.show();
+
+        // Set focus on amount tendered
+        setTimeout(() => {
+            $('#convert-amount-tendered').focus().select();
+        }, 500);
+    }
+    
+    function updateConvertChangeAmount() {
+        const amountTendered = parseFloat($('#convert-amount-tendered').val()) || 0;
+        const change = Math.max(0, amountTendered - currentProformaAmount);
+        
+        $('#convert-change').val(change.toFixed(2));
+    }
+    
+    function convertProformaToSale() {
+        const paymentMethod = $('#convert-payment-method').val();
+        const reference = $('#convert-reference').val();
+        const amountTendered = parseFloat($('#convert-amount-tendered').val()) || 0;
+        const change = parseFloat($('#convert-change').val()) || 0;
+        const notes = $('#convert-notes').val();
+        
+        // Validate payment
+        if (paymentMethod === 'cash' && amountTendered < currentProformaAmount) {
+            showAlert('danger', gettext('Amount tendered must be at least equal to the total amount'));
+            return;
+        }
+        
+        if ((paymentMethod === 'card' || paymentMethod === 'mobile') && !reference) {
+            showAlert('danger', gettext('Reference number is required for card or mobile payments'));
+            return;
+        }
+        
+        // Prepare form data
+        $('#form-proforma-id').val(currentProformaId);
+        $('#form-convert-payment-method').val(paymentMethod);
+        $('#form-convert-reference').val(reference);
+        $('#form-convert-amount-tendered').val(amountTendered);
+        $('#form-convert-change').val(change);
+        $('#form-convert-notes').val(notes);
+        
+        // Submit the form with AJAX to handle errors gracefully
+        $.ajax({
+            url: '/inventory/proforma/convert/',
+            type: 'POST',
+            data: {
+                proforma_id: currentProformaId,
+                payment_method: paymentMethod,
+                reference_number: reference,
+                amount_tendered: amountTendered,
+                change_amount: change,
+                notes: notes,
+                csrfmiddlewaretoken: getCsrfToken()
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Close modal
+                    $('#convertProformaModal').modal('hide');
+                    
+                    // Show success message
+                    showAlert('success', gettext('Proforma invoice converted to sale successfully'));
+                    
+                    // Redirect to invoice if provided
+                    if (response.redirect_url) {
+                        window.location.href = response.redirect_url;
+                    } else {
+                        // Refresh proforma list
+                        $('#proformaInvoicesModal').modal('show');
+                        loadProformaInvoices();
+                    }
+                } else {
+                    showAlert('danger', response.error || gettext('Error converting proforma invoice'));
+                }
+            },
+            error: function() {
+                showAlert('danger', gettext('Error converting proforma invoice'));
+            }
+        });
+    }
+
+    // Document ready
+    $(document).ready(function() {
+        // Load held sales count
+        loadHeldSalesCount();
+        
+        // Product search
+        $('#product-search').on('input', function() {
+            const searchTerm = $(this).val().toLowerCase();
+            filterProducts(searchTerm);
+        });
+        
+        // Barcode search
+        $('#barcode-input').on('keypress', function(e) {
+            if (e.which === 13) {
+                searchBarcode($(this).val());
+                $(this).val('');
+                e.preventDefault();
+            }
+        });
+        
+        $('#barcode-search-btn').on('click', function() {
+            searchBarcode($('#barcode-input').val());
+            $('#barcode-input').val('');
+        });
+        
+        // Category filter
+        $('.category-filter').on('click', function() {
+            $('.category-filter').removeClass('btn-primary').addClass('btn-outline-secondary');
+            $(this).removeClass('btn-outline-secondary').addClass('btn-primary');
+            
+            const categoryId = $(this).data('category');
+            filterProductsByCategory(categoryId);
+        });
+        
+        // Add product to cart
+        $(document).on('click', '.product-card', function() {
+            const productId = $(this).data('id');
+            const productName = $(this).data('name');
+            const productPrice = parseFloat($(this).data('price'));
+            const productStock = parseInt($(this).data('stock'));
+            
+            if (productStock <= 0) {
+                showAlert('warning', gettext('Product out of stock'));
+                return;
+            }
+            
+            addToCart(productId, productName, productPrice, productStock);
+        });
+        
+        // Update quantity
+        $(document).on('change', '.cart-item-quantity', function() {
+            const index = $(this).data('index');
+            const newQuantity = parseInt($(this).val());
+            
+            if (newQuantity <= 0) {
+                removeFromCart(index);
+                return;
+            }
+            
+            if (newQuantity > cart[index].stock) {
+                showAlert('warning', gettext('Not enough stock available'));
+                $(this).val(cart[index].quantity);
+                return;
+            }
+            
+            cart[index].quantity = newQuantity;
+            updateCartDisplay();
+        });
+        
+        // Increment/decrement quantity buttons
+        $(document).on('click', '.increment-quantity', function() {
+            const index = $(this).data('index');
+            const currentQuantity = cart[index].quantity;
+            const maxStock = cart[index].stock;
+            
+            if (currentQuantity < maxStock) {
+                cart[index].quantity += 1;
+                updateCartDisplay();
+            } else {
+                showAlert('warning', gettext('Not enough stock available'));
+            }
+        });
+        
+        $(document).on('click', '.decrement-quantity', function() {
+            const index = $(this).data('index');
+            const currentQuantity = cart[index].quantity;
+
+            if (currentQuantity > 1) {
+                cart[index].quantity -= 1;
+                updateCartDisplay();
+            } else {
+                removeFromCart(index);
+            }
+        });
+        
+        // Remove item from cart
+        $(document).on('click', '.remove-cart-item', function() {
+            const index = $(this).data('index');
+            removeFromCart(index);
+        });
+        
+        // Clear cart
+        $('#clear-cart-btn').on('click', function() {
+            if (cart.length > 0) {
+                if (confirm(gettext('Are you sure you want to clear the cart?'))) {
+                    cart = [];
+                    updateCartDisplay();
+                }
+            }
+        });
+        
+        // Discount and tax changes
+        $('#discount-percentage, #tax-percentage').on('change', function() {
+            updateCartDisplay();
+        });
+        
+        // Calculate change when amount tendered changes
+        $('#amount-tendered').on('input', function() {
+            calculateChange();
+        });
+        
+        // Convert payment method change
+        $('#convert-payment-method').on('change', function() {
+            const method = $(this).val();
+            if (method === 'card' || method === 'mobile') {
+                $('#convert-reference-container').show();
+            } else {
+                $('#convert-reference-container').hide();
+            }
+        });
+        
+        // Convert amount tendered change
+        $('#convert-amount-tendered').on('input', function() {
+            updateConvertChangeAmount();
+        });
+        
+        // Complete conversion button
+        $('#complete-conversion-btn').on('click', function() {
+            convertProformaToSale();
+        });
+        
+        // Held sales button
+        $('#held-sales-btn').on('click', function() {
+            displayHeldSales();
+        });
+        
+        // Proforma invoices button
+        $('#proforma-invoices-btn').on('click', function() {
+            loadProformaInvoices();
+        });
+        
+        // Add new customer form submission
+        $('#customerForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            $.ajax({
+                url: $(this).attr('action'),
+                type: 'POST',
+                data: $(this).serialize(),
+                success: function(response) {
+                    if (response.success) {
+                        // Add new customer to select dropdown
+                        $('#customer-select').append(
+                            $('<option></option>')
+                                .attr('value', response.customer.id)
+                                .text(response.customer.name)
+                        );
+                        
+                        // Select the new customer
+                        $('#customer-select').val(response.customer.id);
+                        
+                        // Close modal
+                        $('#addCustomerModal').modal('hide');
+                        
+                        // Reset form
+                        $('#customerForm')[0].reset();
+
+                        showAlert('success', gettext('Customer added successfully'));
+                    } else {
+                        showAlert('danger', response.errors || gettext('Error adding customer'));
+                    }
+                },
+                error: function() {
+                    showAlert('danger', gettext('Error adding customer'));
+                }
+            });
+        });
+        
+        // Print invoice
+        $('#print-invoice-btn').on('click', function() {
+            const invoiceContent = document.getElementById('invoice-content').innerHTML;
+            const printWindow = window.open('', '_blank');
+            
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>${gettext("Invoice")}</title>
+                    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+                    <style>
+                        body { font-size: 12px; }
+                        .invoice-header { text-align: center; margin-bottom: 20px; }
+                        .invoice-table { width: 100%; border-collapse: collapse; }
+                        .invoice-table th, .invoice-table td { border: 1px solid #ddd; padding: 8px; }
+                        .text-end { text-align: right; }
+                        .text-center { text-align: center; }
+                        @media print {
+                            @page { margin: 0.5cm; }
+                            body { margin: 1cm; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${invoiceContent}
+                </body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(function() {
+                printWindow.print();
+                printWindow.close();
+            }, 500);
+        });
+        
+        // Email invoice
+        $('#email-invoice-btn').on('click', function() {
+            const saleId = $(this).data('sale-id');
+            
+            $.ajax({
+                url: '/inventory/email-invoice/',
+                type: 'POST',
+                data: {
+                    'sale_id': saleId,
+                    'csrfmiddlewaretoken': getCsrfToken()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showAlert('success', gettext('Invoice sent successfully'));
+                    } else {
+                        showAlert('danger', response.error || gettext('Error sending invoice'));
+                    }
+                },
+                error: function() {
+                    showAlert('danger', gettext('Error sending invoice'));
+                }
+            });
+        });
+        
+        // Download invoice PDF
+        $('#download-invoice-btn').on('click', function() {
+            const saleId = $(this).data('sale-id');
+            window.location.href = `/inventory/download-invoice/?sale_id=${saleId}`;
+        });
+        
+        // Print proforma invoice
+        $('#print-proforma-btn').on('click', function() {
+            const proformaContent = document.getElementById('proforma-invoice-content').innerHTML;
+            const printWindow = window.open('', '_blank');
+            
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>${gettext("Proforma Invoice")}</title>
+                    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+                    <style>
+                        body { font-size: 12px; }
+                        .invoice-header { text-align: center; margin-bottom: 20px; }
+                        .invoice-table { width: 100%; border-collapse: collapse; }
+                        .invoice-table th, .invoice-table td { border: 1px solid #ddd; padding: 8px; }
+                        .text-end { text-align: right; }
+                        .text-center { text-align: center; }
+                        @media print {
+                            @page { margin: 0.5cm; }
+                            body { margin: 1cm; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${proformaContent}
+                </body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(function() {
+                printWindow.print();
+                printWindow.close();
+            }, 500);
+        });
+        
+        // Email proforma invoice
+        $('#email-proforma-btn').on('click', function() {
+            $.ajax({
+                url: '/inventory/email-proforma/',
+                type: 'POST',
+                data: {
+                    'proforma_id': currentProformaId,
+                    'csrfmiddlewaretoken': getCsrfToken()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showAlert('success', gettext('Proforma invoice sent successfully'));
+                    } else {
+                        showAlert('danger', response.error || gettext('Error sending proforma invoice'));
+                    }
+                },
+                error: function() {
+                    showAlert('danger', gettext('Error sending proforma invoice'));
+                }
+            });
+        });
+        
+        // Convert to sale button
+        $('#convert-to-sale-btn').on('click', function() {
+            if (!currentProformaId) {
+                showAlert('danger', gettext('Proforma ID not found'));
+                return;
+            }
+            
+            // Close current modal
+            const proformaViewModal = bootstrap.Modal.getInstance(document.getElementById('proformaViewModal'));
+            if (proformaViewModal) {
+                proformaViewModal.hide();
+            }
+            
+            // Show convert modal
+            showConvertProformaModal(currentProformaId, currentProformaAmount);
+        });
+        
+        // Store default tax rate for reference
+        if ($('#tax-percentage').length) {
+            const defaultTaxRate = $('#tax-percentage').val() || 0;
+            $('#tax-percentage').data('default-rate', defaultTaxRate);
+        }
+    });
+</script>
+
+{% endblock %}
+
